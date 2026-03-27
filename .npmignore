@@ -1,0 +1,43 @@
+# Source files (só publicar o dist/)
+src/
+tsconfig.json
+
+# Tests
+*.test.ts
+*.spec.ts
+coverage/
+
+# Development files
+.env
+.env.*
+!.env.example
+
+# Documentation de desenvolvimento
+CONTRIBUTING.md
+DEPLOYMENT.md
+PROJECT_SUMMARY.md
+.github/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Examples
+examples/
+claude_desktop_config.example.json
+
+# Logs
+*.log
+logs/
+
+# Temporary
+*.tmp
+tmp/

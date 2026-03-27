@@ -1,0 +1,62 @@
+{
+  "name": "topdesk-mcp-server",
+  "version": "1.0.0",
+  "description": "Unofficial Model Context Protocol (MCP) server for TOPdesk IT Management API integration",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "topdesk-mcp-server": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "topdesk",
+    "topdesk-api",
+    "it-management",
+    "itsm",
+    "incident-management",
+    "change-management",
+    "service-management",
+    "help-desk",
+    "service-desk",
+    "anthropic",
+    "claude"
+  ],
+  "author": "TOPdesk MCP Server Contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/seu-usuario/topdesk-mcp-server#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seu-usuario/topdesk-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/seu-usuario/topdesk-mcp-server/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "axios": "^1.7.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
