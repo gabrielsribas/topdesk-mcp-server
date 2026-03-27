@@ -88,8 +88,21 @@ export class TopdeskClient {
    * Lista incidents com filtros opcionais
    */
   async listIncidents(params?: IncidentListParams): Promise<Incident[]> {
+    // Remove parâmetros vazios ou undefined para evitar erro 400
+    const cleanParams = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            ([_, value]) =>
+              value !== undefined &&
+              value !== null &&
+              value !== '' &&
+              !(typeof value === 'number' && isNaN(value))
+          )
+        )
+      : undefined;
+
     const response = await this.client.get<Incident[]>('/incidents', {
-      params,
+      params: cleanParams,
     });
     return response.data;
   }
