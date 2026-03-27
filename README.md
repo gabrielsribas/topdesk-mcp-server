@@ -82,7 +82,7 @@ Crie um arquivo `.env` com as seguintes configurações:
 
 ```bash
 # URL base da API TOPdesk (obrigatório)
-TOPDESK_BASE_URL=https://centraldeservicos.bancosemear.com.br/tas/api
+TOPDESK_BASE_URL=https://<endpoint>/tas/api
 
 # Autenticação por usuário/senha (opção 1)
 TOPDESK_USERNAME=seu_usuario
@@ -106,7 +106,7 @@ Para usar com Claude Desktop, adicione ao seu arquivo de configuração:
       "command": "node",
       "args": ["/caminho/absoluto/para/topdesk-mcp-server/dist/index.js"],
       "env": {
-        "TOPDESK_BASE_URL": "https://centraldeservicos.bancosemear.com.br/tas/api",
+        "TOPDESK_BASE_URL": "https://<endpoint>/tas/api",
         "TOPDESK_USERNAME": "seu_usuario",
         "TOPDESK_PASSWORD": "sua_senha"
       }
