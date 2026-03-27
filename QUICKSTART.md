@@ -22,7 +22,7 @@ nano .env  # ou seu editor preferido
 Edite o arquivo `.env`:
 
 ```bash
-TOPDESK_BASE_URL=https://centraldeservicos.bancosemear.com.br/tas/api
+TOPDESK_BASE_URL=https://your-instance.topdesk.net/tas/api
 TOPDESK_USERNAME=seu_usuario
 TOPDESK_PASSWORD=sua_senha
 ```
@@ -51,6 +51,33 @@ Adicione ao arquivo de configuração do Claude:
 
 **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
+#### Opção A: Via GitHub (Mais Simples) ⭐
+
+```json
+{
+  "mcpServers": {
+    "topdesk": {
+      "command": "npx",
+      "args": ["-y", "github:seu-usuario/topdesk-mcp-server"],
+      "env": {
+        "TOPDESK_BASE_URL": "https://your-instance.topdesk.net/tas/api",
+        "TOPDESK_USERNAME": "seu_usuario",
+        "TOPDESK_PASSWORD": "sua_senha"
+      }
+    }
+  }
+}
+```
+
+**Vantagens**:
+- Não precisa clonar o projeto
+- Sempre pega a versão mais recente
+- Funciona de qualquer lugar
+
+**Importante**: Substitua `seu-usuario` pelo seu usuário do GitHub.
+
+#### Opção B: Local (Para Desenvolvimento)
+
 ```json
 {
   "mcpServers": {
@@ -58,7 +85,7 @@ Adicione ao arquivo de configuração do Claude:
       "command": "node",
       "args": ["/caminho/completo/para/topdesk-mcp-server/dist/index.js"],
       "env": {
-        "TOPDESK_BASE_URL": "https://centraldeservicos.bancosemear.com.br/tas/api",
+        "TOPDESK_BASE_URL": "https://your-instance.topdesk.net/tas/api",
         "TOPDESK_USERNAME": "seu_usuario",
         "TOPDESK_PASSWORD": "sua_senha"
       }

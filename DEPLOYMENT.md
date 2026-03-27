@@ -35,7 +35,63 @@ O método mais comum é integrar com Claude Desktop:
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 - Linux: `~/.config/Claude/claude_desktop_config.json`
 
-**Configuração:**
+#### Opção A: Via GitHub (Recomendado) ⭐
+
+Publique o projeto no GitHub e use via npx:
+
+```json
+{
+  "mcpServers": {
+    "topdesk": {
+      "command": "npx",
+      "args": ["-y", "github:seu-usuario/topdesk-mcp-server"],
+      "env": {
+        "TOPDESK_BASE_URL": "https://seu-topdesk.com.br/tas/api",
+        "TOPDESK_USERNAME": "usuario",
+        "TOPDESK_PASSWORD": "senha"
+      }
+    }
+  }
+}
+```
+
+**Vantagens**:
+- ✅ Sem necessidade de instalação local
+- ✅ Atualização automática (sempre usa última versão do branch)
+- ✅ Funciona em qualquer máquina com Node.js
+- ✅ Ideal para containers e CI/CD
+- ✅ Não precisa publicar no NPM
+
+**Como fazer**:
+
+1. Crie repositório no GitHub:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin git@github.com:seu-usuario/topdesk-mcp-server.git
+   git push -u origin main
+   ```
+
+2. Certifique-se que `dist/` está no repositório:
+   ```bash
+   # Remova dist/ do .gitignore se estiver lá
+   git add dist/
+   git commit -m "Add compiled dist files"
+   git push
+   ```
+
+3. Use no Claude Desktop com `github:seu-usuario/topdesk-mcp-server`
+
+**Branch específico**:
+```json
+{
+  "command": "npx",
+  "args": ["-y", "github:seu-usuario/topdesk-mcp-server#develop"]
+}
+```
+
+#### Opção B: Local (Desenvolvimento)
 
 ```json
 {

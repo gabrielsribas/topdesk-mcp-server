@@ -224,7 +224,7 @@ npm start
 
 ### Autenticação Testada
 - URL base deve terminar com `/tas/api`
-- Exemplo: `https://centraldeservicos.bancosemear.com.br/tas/api`
+- Exemplo: `https://your-instance.topdesk.net/tas/api`
 - Basic Auth funciona com username/password
 - API Token é alternativa mais segura
 

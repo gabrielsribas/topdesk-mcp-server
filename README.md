@@ -82,7 +82,7 @@ Crie um arquivo `.env` com as seguintes configurações:
 
 ```bash
 # URL base da API TOPdesk (obrigatório)
-TOPDESK_BASE_URL=https://centraldeservicos.bancosemear.com.br/tas/api
+TOPDESK_BASE_URL=https://your-instance.topdesk.net/tas/api
 
 # Autenticação por usuário/senha (opção 1)
 TOPDESK_USERNAME=seu_usuario
@@ -99,14 +99,16 @@ Para usar com Claude Desktop, adicione ao seu arquivo de configuração:
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
+#### Opção 1: Via GitHub (Recomendado - Sem instalar localmente)
+
 ```json
 {
   "mcpServers": {
     "topdesk": {
-      "command": "node",
-      "args": ["/caminho/absoluto/para/topdesk-mcp-server/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "github:seu-usuario/topdesk-mcp-server"],
       "env": {
-        "TOPDESK_BASE_URL": "https://centraldeservicos.bancosemear.com.br/tas/api",
+        "TOPDESK_BASE_URL": "https://your-instance.topdesk.net/tas/api",
         "TOPDESK_USERNAME": "seu_usuario",
         "TOPDESK_PASSWORD": "sua_senha"
       }
@@ -114,6 +116,32 @@ Para usar com Claude Desktop, adicione ao seu arquivo de configuração:
   }
 }
 ```
+
+**Vantagens**:
+- ✅ Não precisa clonar o repositório
+- ✅ Sempre usa a versão mais recente do branch
+- ✅ Funciona em qualquer máquina com Node.js
+- ✅ Ideal para containers e ambientes efêmeros
+
+#### Opção 2: Local (Desenvolvimento)
+
+```json
+{
+  "mcpServers": {
+    "topdesk": {
+      "command": "node",
+      "args": ["/caminho/absoluto/para/topdesk-mcp-server/dist/index.js"],
+      "env": {
+        "TOPDESK_BASE_URL": "https://your-instance.topdesk.net/tas/api",
+        "TOPDESK_USERNAME": "seu_usuario",
+        "TOPDESK_PASSWORD": "sua_senha"
+      }
+    }
+  }
+}
+```
+
+**Importante**: Substitua `seu-usuario` pelo seu usuário do GitHub onde o repositório está publicado.
 
 ## 🚀 Uso
 
