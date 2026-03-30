@@ -39,6 +39,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - **Context Window Overflow** ao listar 100+ incidents sem especificar campos
 - **Erro 400 ao atualizar incident com nome de operador** - agora exige UUID explicitamente
 - **Erro 400 ao listar operators/persons/changes/services** - mapeamento `page_size` → `pageSize` e `start` → `pageStart` adicionado
+- **Erro 400 ao criar/atualizar incident com UUID direto** - campos relacionais agora transformados para objeto `{id: uuid}`
 
 ### 📚 Documentação
 - Adicionado tutorial completo de FIQL em `FIQL_EXAMPLES.md`
@@ -64,6 +65,11 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - `listChanges`: `page_size` → `pageSize`, `start` → `pageStart`
   - `listServices`: `page_size` → `pageSize`, `start` → `pageStart`
 - Isso permite que MCP tools usem snake_case (padrão Python) enquanto API recebe camelCase (padrão JavaScript)
+- **Adicionada transformação automática de campos relacionais:**
+  - `operator: "uuid"` → `operator: {id: "uuid"}`
+  - `category: "uuid"` → `category: {id: "uuid"}`
+  - Aplica-se a: operator, operatorGroup, category, subcategory, priority, impact, urgency, callType, entryType, processingStatus, object, branch, mainIncident, escalationReason
+  - Método `transformRelationalFields()` aplicado em create/update incidents
 
 ---
 

@@ -83,6 +83,43 @@ export class TopdeskClient {
     );
   }
 
+  /**
+   * Transforma campos relacionais de string UUID para objeto {id: UUID}
+   * A API do TOPdesk requer que campos como operator, category, priority, etc.
+   * sejam enviados como objetos: { "id": "uuid" } e não strings diretas.
+   */
+  private transformRelationalFields(data: any): any {
+    if (!data || typeof data !== 'object') return data;
+
+    const relationalFields = [
+      'operator',
+      'operatorGroup',
+      'category',
+      'subcategory',
+      'priority',
+      'impact',
+      'urgency',
+      'callType',
+      'entryType',
+      'processingStatus',
+      'object',
+      'branch',
+      'mainIncident',
+      'escalationReason',
+    ];
+
+    const transformed = { ...data };
+
+    for (const field of relationalFields) {
+      if (field in transformed && typeof transformed[field] === 'string') {
+        // Se é uma string UUID, transformar em objeto {id: uuid}
+        transformed[field] = { id: transformed[field] };
+      }
+    }
+
+    return transformed;
+  }
+
   // ========== INCIDENTS ==========
 
   /**
@@ -130,7 +167,8 @@ export class TopdeskClient {
    * Cria um novo incident
    */
   async createIncident(data: IncidentCreateBody): Promise<Incident> {
-    const response = await this.client.post<Incident>('/incidents', data);
+    const transformed = this.transformRelationalFields(data);
+    const response = await this.client.post<Incident>('/incidents', transformed);
     return response.data;
   }
 
@@ -141,9 +179,10 @@ export class TopdeskClient {
     id: string,
     data: IncidentUpdateBody
   ): Promise<Incident> {
+    const transformed = this.transformRelationalFields(data);
     const response = await this.client.put<Incident>(
       `/incidents/id/${id}`,
-      data
+      transformed
     );
     return response.data;
   }
@@ -155,9 +194,10 @@ export class TopdeskClient {
     id: string,
     data: Partial<IncidentUpdateBody>
   ): Promise<Incident> {
+    const transformed = this.transformRelationalFields(data);
     const response = await this.client.patch<Incident>(
       `/incidents/id/${id}`,
-      data
+      transformed
     );
     return response.data;
   }
@@ -169,9 +209,10 @@ export class TopdeskClient {
     number: string,
     data: Partial<IncidentUpdateBody>
   ): Promise<Incident> {
+    const transformed = this.transformRelationalFields(data);
     const response = await this.client.patch<Incident>(
       `/incidents/number/${number}`,
-      data
+      transformed
     );
     return response.data;
   }

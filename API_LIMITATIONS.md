@@ -207,9 +207,12 @@ AI deve:
 
 2. topdesk_update_incident({
      number: "C2603-34823",
-     operator: "abc-123-uuid"  // ← UUID, não nome!
+     operator: "abc-123-uuid"  // ← Pode usar UUID direto, o servidor transforma em {id: uuid}
    })
 ```
+
+**NOTA:** O servidor MCP automaticamente transforma `operator: "uuid"` em `operator: {id: "uuid"}` antes de enviar para a API do TOPdesk.
+Você pode passar o UUID como string diretamente.
 
 **Campos que precisam de UUID:**
 
