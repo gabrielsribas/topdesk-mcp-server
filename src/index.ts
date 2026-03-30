@@ -674,7 +674,7 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_operators',
     description:
-      'Lista todos os operadores do TOPdesk. IMPORTANTE: A API não suporta busca por nome diretamente. Este tool retorna TODOS os operadores (com paginação). Depois você deve filtrar os resultados pelo nome desejado. Use page_size grande (ex: 1000) para obter mais resultados.',
+      'Lista todos os operadores do TOPdesk. AVISO CRÍTICO: Nem todos os operadores retornados podem ser atribuídos a incidents! Se receber erro "operator.id cannot be found", use ALTERNATIVA: liste incidents com fields="operator" e extraia operadores de incidents existentes - esses SÃO válidos. A API não suporta busca por nome. Filtre localmente após listar.',
     inputSchema: {
       type: 'object',
       properties: {

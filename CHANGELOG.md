@@ -47,12 +47,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - Seção sobre FIQL obrigatório
   - **Nova seção sobre Context Window Overflow**
   - **Nova seção sobre Create/Update requerem UUIDs**
+  - **CRÍTICO: Nem todos operadores de /operators são válidos para incidents**
+  - Workaround: extrair operadores de incidents existentes
   - Guideline de tamanho: pageSize vs fields
   - Tabela de mapeamento: campo → tool para obter UUID
 - Documentado operadores FIQL: `==`, `!=`, `=lt=`, `=le=`, `=gt=`, `=ge=`, `;`, `,`
 - Exemplos práticos para casos comuns: últimos 7/30 dias, por grupo, por operador, etc.
 - **Campos recomendados** para diferentes casos de uso
 - **Workflow completo** para atribuir incident a operador usando UUID
+- **Error messages completos** da API agora são logados para debug
 
 ### ⚡ Performance
 - Recomendação de usar `fields` para reduzir tamanho da resposta em 90%+

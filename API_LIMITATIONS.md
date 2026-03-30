@@ -141,20 +141,42 @@ Parâmetros aceitos:
 - `pageSize` - quantidade de resultados
 - `archived` - incluir arquivados
 
-#### ✅ Solução
-1. Liste **todos** os operadores com `page_size` grande (ex: 1000)
-2. Filtre localmente pelo nome desejado
-3. Use o ID para filtrar incidents
+**ATENÇÃO CRÍTICA:** Nem todos os operadores retornados por `/operators` podem ser atribuídos a incidents!
 
-**Workflow:**
+Erro comum:
 ```
-User: "Liste chamados do operador Gabriel dos Santos Ribas"
+TOPdesk API error (400): The value for the field 'operator.id' cannot be found.
+```
 
-AI deve:
-1. Chamar topdesk_list_operators(page_size=1000)
-2. Receber: [{id:"uuid1",name:"Gabriel dos Santos Ribas"}, ...]
-3. Filtrar localmente: encontrar UUID do Gabriel
-4. Chamar topdesk_list_incidents(query="operator.id==uuid1")
+Isso acontece quando:
+- O operador não tem permissão para trabalhar com incidents
+- O operador está em um grupo não autorizado
+- O operador foi retornado de `/operators` mas não é válido no contexto de incidents
+
+#### ✅ Solução
+
+**Opção 1: Obter operadores de incidents existentes (RECOMENDADO)**
+```
+1. topdesk_list_incidents({
+     pageSize: 100,
+     fields: "operator,operatorGroup"
+   })
+2. Extrair operadores únicos dos incidents retornados
+3. Esses operadores SÃO VÁLIDOS para atribuição
+4. Usar o UUID do operador encontrado
+```
+
+**Opção 2: Listar todos e testar (menos confiável)**
+```
+1. topdesk_list_operators(pageSize=1000)
+2. Filtrar localmente pelo nome
+3. Tentar atribuir o operador
+4. Se der erro "cannot be found", tentar outro operador da lista
+```
+
+**Opção 3: Usar operadores conhecidos**
+```
+Manter cache de operadores que já foram usados com sucesso em incidents anteriores.
 ```
 
 ---
