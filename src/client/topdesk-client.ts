@@ -428,10 +428,11 @@ export class TopdeskClient {
   // ========== OPERATORS & PERSONS ==========
 
   /**
-   * Lista operadores (com busca opcional)
+   * Lista operadores
+   * NOTA: A API do TOPdesk não suporta busca por nome no endpoint.
+   * Para buscar por nome, liste todos e filtre no código.
    */
   async listOperators(params?: {
-    query?: string;
     archived?: boolean;
     start?: number;
     page_size?: number;
@@ -442,7 +443,7 @@ export class TopdeskClient {
             ([_, value]) =>
               value !== undefined &&
               value !== null &&
-              value !== '' &&
+              (typeof value !== 'string' || value !== '') &&
               !(typeof value === 'number' && isNaN(value))
           )
         )
@@ -463,10 +464,11 @@ export class TopdeskClient {
   }
 
   /**
-   * Lista pessoas/usuários (com busca opcional)
+   * Lista pessoas/usuários
+   * NOTA: A API do TOPdesk pode não suportar busca por nome no endpoint.
+   * Para buscar por nome, liste todos e filtre no código.
    */
   async listPersons(params?: {
-    query?: string;
     archived?: boolean;
     start?: number;
     page_size?: number;
@@ -477,7 +479,7 @@ export class TopdeskClient {
             ([_, value]) =>
               value !== undefined &&
               value !== null &&
-              value !== '' &&
+              (typeof value !== 'string' || value !== '') &&
               !(typeof value === 'number' && isNaN(value))
           )
         )

@@ -683,14 +683,10 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_operators',
     description:
-      'Lista operadores do TOPdesk. Use o parâmetro query para buscar por nome (ex: "Gabriel"). Retorna id e name de cada operador.',
+      'Lista todos os operadores do TOPdesk. IMPORTANTE: A API não suporta busca por nome diretamente. Este tool retorna TODOS os operadores (com paginação). Depois você deve filtrar os resultados pelo nome desejado. Use page_size grande (ex: 1000) para obter mais resultados.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: {
-          type: 'string',
-          description: 'Busca por nome do operador (ex: "Gabriel", "Santos")',
-        },
         archived: {
           type: 'boolean',
           description: 'Incluir operadores arquivados',
@@ -701,7 +697,7 @@ const tools: Tool[] = [
         },
         page_size: {
           type: 'number',
-          description: 'Quantidade de resultados por página',
+          description: 'Quantidade de resultados (padrão: use 1000 para buscar muitos)',
         },
       },
     },
@@ -723,14 +719,10 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_persons',
     description:
-      'Lista pessoas/usuários do TOPdesk. Use o parâmetro query para buscar por nome. Útil para encontrar callers (solicitantes).',
+      'Lista pessoas/usuários do TOPdesk. A API não suporta busca por nome diretamente. Este tool retorna TODAS as pessoas (com paginação). Filtre os resultados depois. Use page_size grande para obter mais resultados.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: {
-          type: 'string',
-          description: 'Busca por nome da pessoa',
-        },
         archived: {
           type: 'boolean',
           description: 'Incluir pessoas arquivadas',
@@ -741,7 +733,7 @@ const tools: Tool[] = [
         },
         page_size: {
           type: 'number',
-          description: 'Quantidade de resultados por página',
+          description: 'Quantidade de resultados',
         },
       },
     },
