@@ -282,8 +282,27 @@ export class TopdeskClient {
    * Lista changes (como operador)
    */
   async listChanges(params?: ChangeListParams): Promise<Change[]> {
+    const cleanParams = params
+      ? Object.fromEntries(
+          Object.entries(params)
+            .filter(
+              ([_, value]) =>
+                value !== undefined &&
+                value !== null &&
+                (typeof value !== 'string' || value !== '') &&
+                !(typeof value === 'number' && isNaN(value))
+            )
+            .map(([key, value]) => {
+              // Mapear snake_case para camelCase para API do TOPdesk
+              if (key === 'page_size') return ['pageSize', value];
+              if (key === 'start') return ['pageStart', value];
+              return [key, value];
+            })
+        )
+      : undefined;
+
     const response = await this.client.get<Change[]>('/operatorChanges', {
-      params,
+      params: cleanParams,
     });
     return response.data;
   }
@@ -367,7 +386,28 @@ export class TopdeskClient {
    * Lista services
    */
   async listServices(params?: ServiceListParams): Promise<Service[]> {
-    const response = await this.client.get<Service[]>('/services', { params });
+    const cleanParams = params
+      ? Object.fromEntries(
+          Object.entries(params)
+            .filter(
+              ([_, value]) =>
+                value !== undefined &&
+                value !== null &&
+                (typeof value !== 'string' || value !== '') &&
+                !(typeof value === 'number' && isNaN(value))
+            )
+            .map(([key, value]) => {
+              // Mapear snake_case para camelCase para API do TOPdesk
+              if (key === 'page_size') return ['pageSize', value];
+              if (key === 'start') return ['pageStart', value];
+              return [key, value];
+            })
+        )
+      : undefined;
+
+    const response = await this.client.get<Service[]>('/services', {
+      params: cleanParams,
+    });
     return response.data;
   }
 
@@ -439,13 +479,20 @@ export class TopdeskClient {
   }): Promise<Operator[]> {
     const cleanParams = params
       ? Object.fromEntries(
-          Object.entries(params).filter(
-            ([_, value]) =>
-              value !== undefined &&
-              value !== null &&
-              (typeof value !== 'string' || value !== '') &&
-              !(typeof value === 'number' && isNaN(value))
-          )
+          Object.entries(params)
+            .filter(
+              ([_, value]) =>
+                value !== undefined &&
+                value !== null &&
+                (typeof value !== 'string' || value !== '') &&
+                !(typeof value === 'number' && isNaN(value))
+            )
+            .map(([key, value]) => {
+              // Mapear snake_case para camelCase para API do TOPdesk
+              if (key === 'page_size') return ['pageSize', value];
+              if (key === 'start') return ['pageStart', value];
+              return [key, value];
+            })
         )
       : undefined;
 
@@ -475,13 +522,20 @@ export class TopdeskClient {
   }): Promise<any[]> {
     const cleanParams = params
       ? Object.fromEntries(
-          Object.entries(params).filter(
-            ([_, value]) =>
-              value !== undefined &&
-              value !== null &&
-              (typeof value !== 'string' || value !== '') &&
-              !(typeof value === 'number' && isNaN(value))
-          )
+          Object.entries(params)
+            .filter(
+              ([_, value]) =>
+                value !== undefined &&
+                value !== null &&
+                (typeof value !== 'string' || value !== '') &&
+                !(typeof value === 'number' && isNaN(value))
+            )
+            .map(([key, value]) => {
+              // Mapear snake_case para camelCase para API do TOPdesk
+              if (key === 'page_size') return ['pageSize', value];
+              if (key === 'start') return ['pageStart', value];
+              return [key, value];
+            })
         )
       : undefined;
 

@@ -38,6 +38,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Filtros diretos como `operator=uuid` não funcionavam (requerem FIQL: `query="operator.id==uuid"`)
 - **Context Window Overflow** ao listar 100+ incidents sem especificar campos
 - **Erro 400 ao atualizar incident com nome de operador** - agora exige UUID explicitamente
+- **Erro 400 ao listar operators/persons/changes/services** - mapeamento `page_size` → `pageSize` e `start` → `pageStart` adicionado
 
 ### 📚 Documentação
 - Adicionado tutorial completo de FIQL em `FIQL_EXAMPLES.md`
@@ -55,6 +56,14 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### ⚡ Performance
 - Recomendação de usar `fields` para reduzir tamanho da resposta em 90%+
 - Exemplo: 100 incidents com fields ~20KB vs sem fields ~200KB
+
+### 🔧 Técnico
+- Adicionado mapeamento automático de parâmetros snake_case → camelCase em:
+  - `listOperators`: `page_size` → `pageSize`, `start` → `pageStart`
+  - `listPersons`: `page_size` → `pageSize`, `start` → `pageStart`
+  - `listChanges`: `page_size` → `pageSize`, `start` → `pageStart`
+  - `listServices`: `page_size` → `pageSize`, `start` → `pageStart`
+- Isso permite que MCP tools usem snake_case (padrão Python) enquanto API recebe camelCase (padrão JavaScript)
 
 ---
 
