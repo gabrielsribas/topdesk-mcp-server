@@ -20,22 +20,33 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Arquivo `FIQL_EXAMPLES.md` com exemplos práticos de queries FIQL
 - Documentação expandida em `API_LIMITATIONS.md` sobre uso de FIQL
 - Exemplos de filtros: por data, operador, grupo, prioridade, categoria, etc.
+- **Guideline de Context Window**: Como usar `fields` para evitar overflow
 
 ### 📝 Mudado
 - Tool `topdesk_list_incidents` agora aceita parâmetros corretos da API do TOPdesk
-- Descrição do tool melhorada com exemplos de FIQL
+- **Descrição do tool atualizada** para recomendar uso de `fields` e evitar context overflow
+- **Recomendação**: `pageSize ≤ 20` sem fields, `pageSize = 50-100` com fields específico
 - Interface `IncidentListParams` em `types/topdesk.ts` corrigida com comentários detalhados
 
 ### 🐛 Corrigido
 - **Erro 400** ao filtrar incidents com parâmetros não suportados pela API
 - Parâmetros `resolved=false`, `closed=false` causavam rejeição pela API
 - Filtros diretos como `operator=uuid` não funcionavam (requerem FIQL: `query="operator.id==uuid"`)
+- **Context Window Overflow** ao listar 100+ incidents sem especificar campos
 
 ### 📚 Documentação
 - Adicionado tutorial completo de FIQL em `FIQL_EXAMPLES.md`
-- Atualizado `API_LIMITATIONS.md` com seção sobre FIQL obrigatório
+- Atualizado `API_LIMITATIONS.md` com:
+  - Seção sobre FIQL obrigatório
+  - **Nova seção sobre Context Window Overflow**
+  - Guideline de tamanho: pageSize vs fields
 - Documentado operadores FIQL: `==`, `!=`, `=lt=`, `=le=`, `=gt=`, `=ge=`, `;`, `,`
 - Exemplos práticos para casos comuns: últimos 7/30 dias, por grupo, por operador, etc.
+- **Campos recomendados** para diferentes casos de uso
+
+### ⚡ Performance
+- Recomendação de usar `fields` para reduzir tamanho da resposta em 90%+
+- Exemplo: 100 incidents com fields ~20KB vs sem fields ~200KB
 
 ---
 

@@ -9,6 +9,32 @@ FIQL (Feed Item Query Language) é uma linguagem de query para filtrar recursos 
 
 ---
 
+## ⚠️ IMPORTANTE: Evite Context Window Overflow
+
+**SEMPRE use o parâmetro `fields`** para retornar apenas campos essenciais:
+
+```typescript
+// ✅ CORRETO - Com fields específico
+{
+  query: "closed==false",
+  pageSize: 100,
+  fields: "id,number,briefDescription,status,creationDate,operator"
+}
+
+// ❌ ERRADO - Sem fields = 200KB+ de JSON
+{
+  query: "closed==false",
+  pageSize: 100
+}
+```
+
+**Guideline:**
+- `pageSize ≤ 20` - OK sem `fields`
+- `pageSize > 20` - **OBRIGATÓRIO** usar `fields`
+- `pageSize = 100` - Usar `fields` com máximo 8-10 campos
+
+---
+
 ## 📝 Sintaxe Básica
 
 ### Operadores de Comparação
@@ -257,34 +283,32 @@ mesPassado.setMonth(mesPassado.getMonth() - 1);
 
 ### Pergunta: "Liste chamados do time Sustentação dos últimos 30 dias"
 
-**Passo 1: Obter ID do grupo "Sustentação"**
-```typescript
-// Tool: topdesk_list_operator_groups (quando implementado)
-// Resultado: [{id:"123-abc", groupName:"Sustentação"}, ...]
-```
-
-**Passo 2: Calcular data de 30 dias atrás**
+**Passo 1: Calcular data de 30 dias atrás**
 ```typescript
 const dataInicio = new Date();
 dataInicio.setDate(dataInicio.getDate() - 30);
 // Resultado: 2026-02-28T12:34:56.789Z
 ```
 
-**Passo 3: Construir query FIQL**
+**Passo 2: Construir query FIQL**
 ```typescript
-const query = `operatorGroup.id==123-abc;creationDate=ge=${dataInicio.toISOString()}`;
-// Resultado: "operatorGroup.id==123-abc;creationDate=ge=2026-02-28T12:34:56.789Z"
+const query = `operatorGroup.name==Sustentação;creationDate=ge=${dataInicio.toISOString()}`;
+// Resultado: "operatorGroup.name==Sustentação;creationDate=ge=2026-02-28T12:34:56.789Z"
 ```
 
-**Passo 4: Listar incidents**
+**Passo 3: Listar incidents COM FIELDS** ⚠️
 ```typescript
 // Tool: topdesk_list_incidents
 {
-  query: "operatorGroup.id==123-abc;creationDate=ge=2026-02-28T12:34:56.789Z",
+  query: "operatorGroup.name==Sustentação;creationDate=ge=2026-02-28T12:34:56.789Z",
   pageSize: 100,
-  sort: "creationDate:desc"
+  fields: "id,number,briefDescription,status,operator,creationDate,priority",  // CRÍTICO!
+  sort: "creationDate:desc",
+  dateFormat: "iso8601"
 }
 ```
+
+**⚠️ SEM o parâmetro `fields`, você terá context window overflow!**
 
 ---
 

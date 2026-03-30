@@ -4,6 +4,66 @@ Este documento descreve limitações conhecidas da API REST do TOPdesk e soluç�
 
 ## 🚫 Limitações Críticas
 
+### 0. **Context Window Overflow - Use "fields" Parameter**
+
+#### ❌ Problema
+Listar incidents com `pageSize` grande (50-100+) sem especificar campos retorna **JSON imenso** que excede o context window do LLM.
+
+**Erro típico:**
+```
+litellm.ContextWindowExceededError: Input is too long for requested model
+```
+
+Cada incident tem 30-40 campos. Com 100 incidents, o JSON pode ter 200KB-500KB.
+
+#### ✅ Solução
+**SEMPRE use o parâmetro `fields`** para retornar apenas campos essenciais:
+
+```typescript
+// ✅ BOM - Retorna apenas campos necessários (~5KB para 100 incidents)
+{
+  pageSize: 100,
+  fields: "id,number,briefDescription,status,creationDate,operator,operatorGroup,priority",
+  query: "creationDate=ge=2026-03-01T00:00:00Z"
+}
+
+// ❌ RUIM - Retorna TODOS os campos (~200KB para 100 incidents)
+{
+  pageSize: 100,
+  query: "creationDate=ge=2026-03-01T00:00:00Z"
+}
+```
+
+**Campos recomendados por caso de uso:**
+
+**Listagem básica:**
+```
+fields=id,number,briefDescription,status,creationDate,closedDate
+```
+
+**Com responsável:**
+```
+fields=id,number,briefDescription,operator,operatorGroup,creationDate
+```
+
+**Com prioridade/categoria:**
+```
+fields=id,number,briefDescription,priority,category,status,creationDate
+```
+
+**Completo (use apenas pageSize baixo ≤20):**
+```
+fields=id,number,briefDescription,request,status,operator,operatorGroup,priority,category,creationDate,modificationDate,targetDate,closedDate
+```
+
+**Guideline de tamanho:**
+- `pageSize ≤ 20` sem `fields` - OK (~20KB)
+- `pageSize = 50` com `fields` básico - OK (~10KB)
+- `pageSize = 100` com `fields` básico - OK (~20KB)
+- `pageSize = 100` SEM `fields` - ❌ OVERFLOW (~200KB+)
+
+---
+
 ### 1. **Filtros de Incidents Requerem FIQL**
 
 #### ❌ Problema

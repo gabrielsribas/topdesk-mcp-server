@@ -64,7 +64,7 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_incidents',
     description:
-      'Lista incidents do TOPdesk. Use o parâmetro "query" com sintaxe FIQL para filtros complexos. Exemplos de FIQL: closed==false (não fechados), operatorGroup.name==Sustentação (por grupo), creationDate=ge=2026-03-01T00:00:00Z (últimos 30 dias). Para nomes de operadores/grupos, primeiro liste-os com topdesk_list_operators ou topdesk_list_operator_groups para obter IDs.',
+      'Lista incidents do TOPdesk. IMPORTANTE: Use "fields" para retornar apenas campos essenciais e evitar context window overflow. Recomendado: fields="id,number,briefDescription,status,creationDate,operator,operatorGroup". Use "query" com sintaxe FIQL para filtros: closed==false (não fechados), operatorGroup.name==Sustentação (por grupo), creationDate=ge=2026-03-01T00:00:00Z (últimos 30 dias).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -75,22 +75,22 @@ const tools: Tool[] = [
         pageSize: {
           type: 'number',
           description:
-            'Quantidade máxima de incidents a retornar (1-10000, padrão: 10)',
+            'Quantidade máxima de incidents (1-10000). Recomendado: 20-50 para evitar context overflow. Use 100+ apenas com "fields" específico.',
         },
         query: {
           type: 'string',
           description:
-            'Filtro FIQL para selecionar incidents. Exemplos: closed==false, operatorGroup.id==uuid, creationDate=ge=2026-03-01T00:00:00Z. Tutorial: https://developers.topdesk.com/tutorial.html#query',
+            'Filtro FIQL para selecionar incidents. Exemplos: closed==false, operatorGroup.name==Sustentação, creationDate=ge=2026-03-01T00:00:00Z. Use ";" para AND, "," para OR.',
         },
         sort: {
           type: 'string',
           description:
-            'Ordenação dos resultados. Ex: creationDate:desc,targetDate:asc. Campos recomendados: callDate, creationDate, modificationDate, targetDate, closedDate, id',
+            'Ordenação dos resultados. Ex: creationDate:desc. Campos rápidos: creationDate, modificationDate, callDate, targetDate, closedDate, id',
         },
         fields: {
           type: 'string',
           description:
-            'Lista separada por vírgulas dos campos a retornar. Se omitido, retorna todos os campos (mais lento)',
+            'CRÍTICO para grandes consultas: Lista campos separados por vírgula. Recomendado: "id,number,briefDescription,status,creationDate,operator,operatorGroup,priority,category". Reduz drasticamente o tamanho da resposta.',
         },
         dateFormat: {
           type: 'string',
