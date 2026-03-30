@@ -210,6 +210,7 @@ export class TopdeskClient {
     data: Partial<IncidentUpdateBody>
   ): Promise<Incident> {
     const transformed = this.transformRelationalFields(data);
+    console.error(`[TOPdesk] PATCH body:`, JSON.stringify(transformed, null, 2));
     const response = await this.client.patch<Incident>(
       `/incidents/number/${number}`,
       transformed
