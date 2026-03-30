@@ -75,7 +75,23 @@ export class TopdeskClient {
       (error) => {
         if (error.response) {
           const status = error.response.status;
-          const message = error.response.data?.message || error.message;
+          const data = error.response.data;
+          
+          // Logar resposta de erro completa para debug
+          console.error(`[TOPdesk] Error ${status}:`, JSON.stringify(data, null, 2));
+          
+          // Tentar extrair mensagem de erro do corpo
+          let message = error.message;
+          if (typeof data === 'string') {
+            message = data;
+          } else if (data?.message) {
+            message = data.message;
+          } else if (data?.error) {
+            message = data.error;
+          } else if (data) {
+            message = JSON.stringify(data);
+          }
+          
           throw new Error(`TOPdesk API error (${status}): ${message}`);
         }
         throw error;
