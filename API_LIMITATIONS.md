@@ -173,7 +173,61 @@ Idêntico ao problema de operators.
 
 ---
 
-### 4. **Grupos de Operadores Requerem Endpoint Separado**
+### 4. **Create/Update Incident Requerem UUIDs**
+
+#### ❌ Problema
+Ao criar ou atualizar incidents, **TODOS** os campos relacionais requerem **UUIDs**, não nomes:
+- `operator` - UUID do operador (não nome "Gabriel dos Santos Ribas")
+- `operatorGroup` - UUID do grupo (não nome "Sustentação")
+- `caller` / `callerLookup` - UUID da person (não nome ou email)
+- `category` - UUID da categoria (não nome "Hardware")
+- `subcategory` - UUID da subcategoria
+- `priority` - UUID da prioridade (não nome "High")
+- `impact` - UUID do impacto
+- `urgency` - UUID da urgência
+- `processingStatus` - UUID do status
+
+**Erro típico:**
+```
+PATCH /incidents/number/C2603-34823
+Body: {"operator": "Gabriel dos Santos Ribas"}
+→ HTTP 400 Bad Request
+```
+
+#### ✅ Solução
+**SEMPRE obtenha o UUID primeiro:**
+
+**Workflow correto:**
+```
+User: "Coloque o chamado C2603-34823 na fila do operador Gabriel dos Santos Ribas"
+
+AI deve:
+1. topdesk_list_operators(pageSize=1000)
+   → Encontra: {id:"abc-123-uuid",name:"Gabriel dos Santos Ribas"}
+
+2. topdesk_update_incident({
+     number: "C2603-34823",
+     operator: "abc-123-uuid"  // ← UUID, não nome!
+   })
+```
+
+**Campos que precisam de UUID:**
+
+| Campo | Tool para obter UUID |
+|-------|---------------------|
+| `operator` | `topdesk_list_operators` → filtrar por nome → pegar .id |
+| `operatorGroup` | `topdesk_list_operator_groups` (futuro) |
+| `caller` / `callerLookup` | `topdesk_list_persons` → filtrar → pegar .id |
+| `category` | `topdesk_list_incident_categories` → filtrar → pegar .id |
+| `subcategory` | `topdesk_list_incident_subcategories` → filtrar → pegar .id |
+| `priority` | `topdesk_get_incident_priorities` → filtrar → pegar .id |
+| `impact` | `topdesk_get_incident_impacts` → filtrar → pegar .id |
+| `urgency` | `topdesk_get_incident_urgencies` → filtrar → pegar .id |
+| `processingStatus` | `topdesk_get_incident_statuses` → filtrar → pegar .id |
+
+---
+
+### 5. **Grupos de Operadores Requerem Endpoint Separado**
 
 #### ❌ Problema
 Para filtrar incidents por **grupo de operadores** (ex: "Sustentação"), você precisa do UUID do grupo.
@@ -199,7 +253,7 @@ Então o workflow será:
 
 ---
 
-### 5. **Filtros de Data Requerem ISO 8601**
+### 6. **Filtros de Data Requerem ISO 8601**
 
 #### ❌ Problema
 Datas devem estar no formato ISO 8601 com timezone.
@@ -226,7 +280,7 @@ const query = `creationDate=ge=${dataInicio.toISOString()}`;
 
 ---
 
-### 6. **IDs vs Nomes - Sempre Use UUIDs**
+### 7. **IDs vs Nomes em Filtros FIQL - Sempre Use UUIDs**
 
 #### ❌ Problema
 Todos os filtros relacionais requerem **IDs (UUIDs)**, não nomes:

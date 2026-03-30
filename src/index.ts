@@ -145,7 +145,7 @@ const tools: Tool[] = [
         callerLookup: {
           type: 'string',
           description:
-            'ID do solicitante (caller). Use para associar a um usuário existente.',
+            'UUID do solicitante (caller) - NÃO use nome ou email! Use topdesk_list_persons ou topdesk_get_person_by_id para obter UUID.',
         },
         briefDescription: {
           type: 'string',
@@ -165,11 +165,11 @@ const tools: Tool[] = [
         },
         category: {
           type: 'string',
-          description: 'ID da categoria',
+          description: 'UUID da categoria - NÃO use nome! Obtenha com topdesk_list_incident_categories',
         },
         subcategory: {
           type: 'string',
-          description: 'ID da subcategoria',
+          description: 'UUID da subcategoria - obtenha com topdesk_list_incident_subcategories',
         },
         callType: {
           type: 'string',
@@ -177,23 +177,23 @@ const tools: Tool[] = [
         },
         impact: {
           type: 'string',
-          description: 'ID do impacto',
+          description: 'UUID do impacto - obtenha com topdesk_get_incident_impacts',
         },
         urgency: {
           type: 'string',
-          description: 'ID da urgência',
+          description: 'UUID da urgência - obtenha com topdesk_get_incident_urgencies',
         },
         priority: {
           type: 'string',
-          description: 'ID da prioridade',
+          description: 'UUID da prioridade - obtenha com topdesk_get_incident_priorities',
         },
         operator: {
           type: 'string',
-          description: 'ID do operador responsável',
+          description: 'UUID do operador responsável - NÃO use nome! Primeiro chame topdesk_list_operators para obter o UUID.',
         },
         operatorGroup: {
           type: 'string',
-          description: 'ID do grupo de operadores',
+          description: 'UUID do grupo de operadores - NÃO use nome! Use topdesk_list_operator_groups (quando implementado).',
         },
       },
       required: ['briefDescription'],
@@ -202,7 +202,7 @@ const tools: Tool[] = [
   {
     name: 'topdesk_update_incident',
     description:
-      'Atualiza um incident existente (PATCH - atualiza apenas os campos fornecidos). Pode atualizar por ID ou número.',
+      'Atualiza um incident existente (PATCH - atualiza apenas os campos fornecidos). CRÍTICO: Campos relacionais (operator, operatorGroup, category, etc.) requerem UUIDs, NÃO nomes. Primeiro obtenha o UUID usando topdesk_list_operators, topdesk_list_incident_categories, etc.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -232,19 +232,19 @@ const tools: Tool[] = [
         },
         category: {
           type: 'string',
-          description: 'ID da categoria',
+          description: 'UUID da categoria - NÃO use nome! Obtenha com topdesk_list_incident_categories',
         },
         subcategory: {
           type: 'string',
-          description: 'ID da subcategoria',
+          description: 'UUID da subcategoria - NÃO use nome! Obtenha com topdesk_list_incident_subcategories',
         },
         operator: {
           type: 'string',
-          description: 'ID do operador responsável',
+          description: 'UUID do operador responsável - NÃO use nome! Primeiro chame topdesk_list_operators para obter o UUID.',
         },
         processingStatus: {
           type: 'string',
-          description: 'ID do status de processamento',
+          description: 'UUID do status de processamento - obtenha com topdesk_get_incident_statuses',
         },
         completed: {
           type: 'boolean',

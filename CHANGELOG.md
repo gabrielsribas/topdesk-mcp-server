@@ -27,22 +27,30 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - **Descrição do tool atualizada** para recomendar uso de `fields` e evitar context overflow
 - **Recomendação**: `pageSize ≤ 20` sem fields, `pageSize = 50-100` com fields específico
 - Interface `IncidentListParams` em `types/topdesk.ts` corrigida com comentários detalhados
+- **Tools create/update incident** agora deixam CLARO que campos relacionais requerem UUIDs:
+  - `operator` → UUID (não nome "Gabriel dos Santos Ribas")
+  - `operatorGroup` → UUID (não nome "Sustentação")
+  - `caller`, `category`, `priority`, etc. → todos requerem UUID
 
 ### 🐛 Corrigido
 - **Erro 400** ao filtrar incidents com parâmetros não suportados pela API
 - Parâmetros `resolved=false`, `closed=false` causavam rejeição pela API
 - Filtros diretos como `operator=uuid` não funcionavam (requerem FIQL: `query="operator.id==uuid"`)
 - **Context Window Overflow** ao listar 100+ incidents sem especificar campos
+- **Erro 400 ao atualizar incident com nome de operador** - agora exige UUID explicitamente
 
 ### 📚 Documentação
 - Adicionado tutorial completo de FIQL em `FIQL_EXAMPLES.md`
 - Atualizado `API_LIMITATIONS.md` com:
   - Seção sobre FIQL obrigatório
   - **Nova seção sobre Context Window Overflow**
+  - **Nova seção sobre Create/Update requerem UUIDs**
   - Guideline de tamanho: pageSize vs fields
+  - Tabela de mapeamento: campo → tool para obter UUID
 - Documentado operadores FIQL: `==`, `!=`, `=lt=`, `=le=`, `=gt=`, `=ge=`, `;`, `,`
 - Exemplos práticos para casos comuns: últimos 7/30 dias, por grupo, por operador, etc.
 - **Campos recomendados** para diferentes casos de uso
+- **Workflow completo** para atribuir incident a operador usando UUID
 
 ### ⚡ Performance
 - Recomendação de usar `fields` para reduzir tamanho da resposta em 90%+
