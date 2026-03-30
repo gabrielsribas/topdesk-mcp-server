@@ -19,6 +19,7 @@ import type {
   ProgressTrail,
   TimeSpent,
   IdAndName,
+  Operator,
 } from '../types/topdesk.js';
 
 export interface TopdeskClientConfig {
@@ -421,6 +422,78 @@ export class TopdeskClient {
    */
   async getCategories(): Promise<IdAndName[]> {
     const response = await this.client.get<IdAndName[]>('/categories');
+    return response.data;
+  }
+
+  // ========== OPERATORS & PERSONS ==========
+
+  /**
+   * Lista operadores (com busca opcional)
+   */
+  async listOperators(params?: {
+    query?: string;
+    archived?: boolean;
+    start?: number;
+    page_size?: number;
+  }): Promise<Operator[]> {
+    const cleanParams = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            ([_, value]) =>
+              value !== undefined &&
+              value !== null &&
+              value !== '' &&
+              !(typeof value === 'number' && isNaN(value))
+          )
+        )
+      : undefined;
+
+    const response = await this.client.get<Operator[]>('/operators', {
+      params: cleanParams,
+    });
+    return response.data;
+  }
+
+  /**
+   * Obtém operador por ID
+   */
+  async getOperatorById(id: string): Promise<Operator> {
+    const response = await this.client.get<Operator>(`/operators/id/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Lista pessoas/usuários (com busca opcional)
+   */
+  async listPersons(params?: {
+    query?: string;
+    archived?: boolean;
+    start?: number;
+    page_size?: number;
+  }): Promise<any[]> {
+    const cleanParams = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            ([_, value]) =>
+              value !== undefined &&
+              value !== null &&
+              value !== '' &&
+              !(typeof value === 'number' && isNaN(value))
+          )
+        )
+      : undefined;
+
+    const response = await this.client.get<any[]>('/persons', {
+      params: cleanParams,
+    });
+    return response.data;
+  }
+
+  /**
+   * Obtém pessoa por ID
+   */
+  async getPersonById(id: string): Promise<any> {
+    const response = await this.client.get<any>(`/persons/${id}`);
     return response.data;
   }
 }

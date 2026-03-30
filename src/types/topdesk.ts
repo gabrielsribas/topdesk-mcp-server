@@ -38,6 +38,12 @@ export interface Operator {
   avatar?: string;
 }
 
+export interface Operator {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
 export interface Object {
   id: string;
   name: string;

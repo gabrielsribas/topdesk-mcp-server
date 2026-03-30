@@ -46,6 +46,12 @@ Servidor Model Context Protocol (MCP) para integração com TOPdesk IT Managemen
 - Consultar versões (API e produto)
 - Listar categorias globais
 
+### 👥 Operators & Persons
+- Buscar operadores por nome
+- Obter detalhes de operadores
+- Buscar pessoas/usuários por nome
+- Obter detalhes de pessoas
+
 ## 📦 Instalação
 
 ### Pré-requisitos
@@ -214,6 +220,23 @@ npm start
 }
 ```
 
+#### Buscar Operador por Nome
+
+```javascript
+// Tool: topdesk_list_operators
+{
+  "query": "Gabriel"
+}
+// Retorna: [{ id: "uuid-1234", name: "Gabriel dos Santos Ribas" }]
+
+// Depois use o ID para filtrar incidents:
+// Tool: topdesk_list_incidents
+{
+  "operator": "uuid-1234",
+  "resolved": true
+}
+```
+
 ## 📚 API Reference
 
 ### Incidents Tools
@@ -236,6 +259,15 @@ npm start
 | `topdesk_get_incident_priorities` | Lista prioridades |
 | `topdesk_get_incident_impacts` | Lista impactos |
 | `topdesk_get_incident_urgencies` | Lista urgências |
+
+### Operators & Persons Tools
+
+| Tool | Descrição |
+|------|-----------|
+| `topdesk_list_operators` | Lista operadores (buscar por nome) |
+| `topdesk_get_operator_by_id` | Obtém operador por ID |
+| `topdesk_list_persons` | Lista pessoas/usuários (buscar por nome) |
+| `topdesk_get_person_by_id` | Obtém pessoa por ID |
 
 ### Changes Tools
 

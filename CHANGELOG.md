@@ -95,7 +95,32 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
-### 🚀 Planejado para próximas versões
+### ✨ Adicionado
+
+#### Operators & Persons Management
+- Tool `topdesk_list_operators` - Buscar operadores por nome ou listar todos
+- Tool `topdesk_get_operator_by_id` - Obter detalhes de operador específico
+- Tool `topdesk_list_persons` - Buscar pessoas/usuários por nome
+- Tool `topdesk_get_person_by_id` - Obter detalhes de pessoa específica
+- Método `listOperators()` no cliente com suporte a busca por query
+- Método `getOperatorById()` no cliente
+- Método `listPersons()` no cliente com suporte a busca por query
+- Método `getPersonById()` no cliente
+- Tipo `Operator` em types/topdesk.ts
+
+### 🐛 Corrigido
+- Filtro automático de parâmetros vazios em `listIncidents()` para evitar erro 400
+- Descrições melhoradas nos tools indicando que filtros requerem IDs, não nomes
+- Orientação clara sobre uso do parâmetro `query` para busca por texto livre
+
+### 📝 Documentação
+- Adicionado DOCKER.md com guia completo de uso em containers
+- Documentação sobre como buscar operadores antes de filtrar incidents
+- Exemplos de workflow: buscar operador por nome e depois filtrar incidents
+
+---
+
+## [1.0.0] - 2026-03-27
 - Suporte para attachments em incidents e changes
 - Time spent registration em incidents
 - Requester APIs (SSP users)

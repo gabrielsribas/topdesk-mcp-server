@@ -64,7 +64,7 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_incidents',
     description:
-      'Lista incidents do TOPdesk com filtros opcionais. Suporta filtros por status, datas, operador, categoria, etc.',
+      'Lista incidents do TOPdesk com filtros opcionais. IMPORTANTE: Filtros como operator, caller, category, etc. requerem IDs (UUIDs), não nomes. Use query para buscar por texto livre ou primeiro obtenha o ID usando outros tools.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -90,27 +90,27 @@ const tools: Tool[] = [
         },
         query: {
           type: 'string',
-          description: 'Busca por texto livre',
+          description: 'Busca por texto livre em qualquer campo (use isto para buscar por nomes)',
         },
         caller: {
           type: 'string',
-          description: 'ID do solicitante',
+          description: 'ID (UUID) do solicitante - NÃO use nomes, use IDs',
         },
         operator: {
           type: 'string',
-          description: 'ID do operador',
+          description: 'ID (UUID) do operador - NÃO use nomes, use IDs. Se não souber o ID, liste todos os incidents sem filtro e examine os resultados.',
         },
         processingStatus: {
           type: 'string',
-          description: 'Status de processamento',
+          description: 'ID do status de processamento',
         },
         category: {
           type: 'string',
-          description: 'ID da categoria',
+          description: 'ID (UUID) da categoria - NÃO use nomes, use IDs',
         },
         subcategory: {
           type: 'string',
-          description: 'ID da subcategoria',
+          description: 'ID (UUID) da subcategoria - NÃO use nomes, use IDs',
         },
       },
     },
@@ -678,6 +678,88 @@ const tools: Tool[] = [
       properties: {},
     },
   },
+
+  // ===== OPERATORS & PERSONS =====
+  {
+    name: 'topdesk_list_operators',
+    description:
+      'Lista operadores do TOPdesk. Use o parâmetro query para buscar por nome (ex: "Gabriel"). Retorna id e name de cada operador.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Busca por nome do operador (ex: "Gabriel", "Santos")',
+        },
+        archived: {
+          type: 'boolean',
+          description: 'Incluir operadores arquivados',
+        },
+        start: {
+          type: 'number',
+          description: 'Índice inicial para paginação',
+        },
+        page_size: {
+          type: 'number',
+          description: 'Quantidade de resultados por página',
+        },
+      },
+    },
+  },
+  {
+    name: 'topdesk_get_operator_by_id',
+    description: 'Obtém detalhes de um operador específico pelo ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+          description: 'ID (UUID) do operador',
+        },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'topdesk_list_persons',
+    description:
+      'Lista pessoas/usuários do TOPdesk. Use o parâmetro query para buscar por nome. Útil para encontrar callers (solicitantes).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Busca por nome da pessoa',
+        },
+        archived: {
+          type: 'boolean',
+          description: 'Incluir pessoas arquivadas',
+        },
+        start: {
+          type: 'number',
+          description: 'Índice inicial para paginação',
+        },
+        page_size: {
+          type: 'number',
+          description: 'Quantidade de resultados por página',
+        },
+      },
+    },
+  },
+  {
+    name: 'topdesk_get_person_by_id',
+    description: 'Obtém detalhes de uma pessoa específica pelo ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+          description: 'ID (UUID) da pessoa',
+        },
+      },
+      required: ['id'],
+    },
+  },
 ];
 
 // ========== Tool Handlers ==========
@@ -1115,6 +1197,57 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: 'text',
             text: JSON.stringify(categories, null, 2),
+          },
+        ],
+      };
+    }
+
+    // ===== OPERATORS & PERSONS =====
+    if (name === 'topdesk_list_operators') {
+      const operators = await topdeskClient.listOperators(args as any);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(operators, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_get_operator_by_id') {
+      const { id } = args as { id: string };
+      const operator = await topdeskClient.getOperatorById(id);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(operator, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_list_persons') {
+      const persons = await topdeskClient.listPersons(args as any);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(persons, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_get_person_by_id') {
+      const { id } = args as { id: string };
+      const person = await topdeskClient.getPersonById(id);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(person, null, 2),
           },
         ],
       };
