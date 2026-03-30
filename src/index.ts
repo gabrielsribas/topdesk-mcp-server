@@ -64,53 +64,44 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_incidents',
     description:
-      'Lista incidents do TOPdesk com filtros opcionais. IMPORTANTE: Filtros como operator, caller, category, etc. requerem IDs (UUIDs), não nomes. Use query para buscar por texto livre ou primeiro obtenha o ID usando outros tools.',
+      'Lista incidents do TOPdesk. Use o parâmetro "query" com sintaxe FIQL para filtros complexos. Exemplos de FIQL: closed==false (não fechados), operatorGroup.name==Sustentação (por grupo), creationDate=ge=2026-03-01T00:00:00Z (últimos 30 dias). Para nomes de operadores/grupos, primeiro liste-os com topdesk_list_operators ou topdesk_list_operator_groups para obter IDs.',
     inputSchema: {
       type: 'object',
       properties: {
-        archived: {
-          type: 'boolean',
-          description: 'Incluir incidents arquivados',
-        },
-        resolved: {
-          type: 'boolean',
-          description: 'Filtrar por incidents resolvidos',
-        },
-        closed: {
-          type: 'boolean',
-          description: 'Filtrar por incidents fechados',
-        },
-        start: {
+        pageStart: {
           type: 'number',
-          description: 'Índice inicial para paginação (padrão: 0)',
+          description: 'Offset para paginação (padrão: 0)',
         },
-        page_size: {
+        pageSize: {
           type: 'number',
-          description: 'Quantidade de resultados por página (padrão: 10, máx: 100)',
+          description:
+            'Quantidade máxima de incidents a retornar (1-10000, padrão: 10)',
         },
         query: {
           type: 'string',
-          description: 'Busca por texto livre em qualquer campo (use isto para buscar por nomes)',
+          description:
+            'Filtro FIQL para selecionar incidents. Exemplos: closed==false, operatorGroup.id==uuid, creationDate=ge=2026-03-01T00:00:00Z. Tutorial: https://developers.topdesk.com/tutorial.html#query',
         },
-        caller: {
+        sort: {
           type: 'string',
-          description: 'ID (UUID) do solicitante - NÃO use nomes, use IDs',
+          description:
+            'Ordenação dos resultados. Ex: creationDate:desc,targetDate:asc. Campos recomendados: callDate, creationDate, modificationDate, targetDate, closedDate, id',
         },
-        operator: {
+        fields: {
           type: 'string',
-          description: 'ID (UUID) do operador - NÃO use nomes, use IDs. Se não souber o ID, liste todos os incidents sem filtro e examine os resultados.',
+          description:
+            'Lista separada por vírgulas dos campos a retornar. Se omitido, retorna todos os campos (mais lento)',
         },
-        processingStatus: {
+        dateFormat: {
           type: 'string',
-          description: 'ID do status de processamento',
+          enum: ['iso8601'],
+          description:
+            'Formato das datas. Use "iso8601" para datas no formato 2020-10-01T14:10:00Z',
         },
-        category: {
-          type: 'string',
-          description: 'ID (UUID) da categoria - NÃO use nomes, use IDs',
-        },
-        subcategory: {
-          type: 'string',
-          description: 'ID (UUID) da subcategoria - NÃO use nomes, use IDs',
+        all: {
+          type: 'boolean',
+          description:
+            'Quando true, retorna TODOS os incidents incluindo parciais e arquivados. Padrão: apenas firstLine e secondLine',
         },
       },
     },

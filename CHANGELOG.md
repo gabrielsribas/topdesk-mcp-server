@@ -5,6 +5,40 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [Unreleased]
+
+### 🔥 BREAKING CHANGES
+
+#### Incident Filters - Agora Usa FIQL
+- **CRÍTICO**: `IncidentListParams` completamente reescrito para refletir API real do TOPdesk
+- **REMOVIDOS** parâmetros que não existem na API: `resolved`, `closed`, `operator`, `category`, `caller`, etc.
+- **ADICIONADOS** parâmetros reais da API: `pageStart`, `pageSize`, `query` (FIQL), `sort`, `fields`, `dateFormat`, `all`
+- Filtros complexos agora requerem **FIQL** (Feed Item Query Language) no parâmetro `query`
+- Exemplo: `query: "closed==false;creationDate=ge=2026-03-01T00:00:00Z"`
+
+### ✨ Adicionado
+- Arquivo `FIQL_EXAMPLES.md` com exemplos práticos de queries FIQL
+- Documentação expandida em `API_LIMITATIONS.md` sobre uso de FIQL
+- Exemplos de filtros: por data, operador, grupo, prioridade, categoria, etc.
+
+### 📝 Mudado
+- Tool `topdesk_list_incidents` agora aceita parâmetros corretos da API do TOPdesk
+- Descrição do tool melhorada com exemplos de FIQL
+- Interface `IncidentListParams` em `types/topdesk.ts` corrigida com comentários detalhados
+
+### 🐛 Corrigido
+- **Erro 400** ao filtrar incidents com parâmetros não suportados pela API
+- Parâmetros `resolved=false`, `closed=false` causavam rejeição pela API
+- Filtros diretos como `operator=uuid` não funcionavam (requerem FIQL: `query="operator.id==uuid"`)
+
+### 📚 Documentação
+- Adicionado tutorial completo de FIQL em `FIQL_EXAMPLES.md`
+- Atualizado `API_LIMITATIONS.md` com seção sobre FIQL obrigatório
+- Documentado operadores FIQL: `==`, `!=`, `=lt=`, `=le=`, `=gt=`, `=ge=`, `;`, `,`
+- Exemplos práticos para casos comuns: últimos 7/30 dias, por grupo, por operador, etc.
+
+---
+
 ## [1.0.0] - 2026-03-27
 
 ### ✨ Adicionado

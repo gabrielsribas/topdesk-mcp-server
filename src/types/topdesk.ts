@@ -337,27 +337,25 @@ export interface ServiceCreate {
 
 // ========== Query Parameters ==========
 
+/**
+ * Parâmetros para listagem de incidents.
+ * Nota: A API do TOPdesk não aceita filtros diretos como "resolved", "closed", etc.
+ * Use FIQL (Feed Item Query Language) no parâmetro "query" para filtros complexos.
+ * Exemplos de FIQL:
+ * - Incidents não fechados: query="closed==false"
+ * - Por operador: query="operator.id==uuid-here"
+ * - Por grupo: query="operatorGroup.id==uuid-here"
+ * - Últimos 30 dias: query="creationDate=ge=2026-03-01T00:00:00Z"
+ * Tutorial FIQL: https://developers.topdesk.com/tutorial.html#query
+ */
 export interface IncidentListParams {
-  archived?: boolean;
-  resolved?: boolean;
-  closed?: boolean;
-  start?: number;
-  page_size?: number;
-  query?: string;
-  sort?: string;
-  caller?: string;
-  operator?: string;
-  operatorGroup?: string;
-  processingStatus?: string;
-  category?: string;
-  subcategory?: string;
-  object?: string;
-  branch?: string;
-  mainIncident?: string;
-  creationDateStart?: string;
-  creationDateEnd?: string;
-  modificationDateStart?: string;
-  modificationDateEnd?: string;
+  pageStart?: number; // Offset para paginação (padrão: 0)
+  pageSize?: number; // Quantidade máxima de incidents (1-10000, padrão: 10)
+  query?: string; // Filtro FIQL para seleção de incidents
+  sort?: string; // Ordenação (ex: "creationDate:desc,targetDate:asc")
+  fields?: string; // Campos a retornar (separados por vírgula)
+  dateFormat?: 'iso8601'; // Formato de datas
+  all?: boolean; // Retorna todos incidents incluindo parciais e arquivados
   closureDateStart?: string;
   closureDateEnd?: string;
 }
