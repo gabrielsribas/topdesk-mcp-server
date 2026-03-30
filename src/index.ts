@@ -189,11 +189,11 @@ const tools: Tool[] = [
         },
         operator: {
           type: 'string',
-          description: 'UUID do operador responsável - NÃO use nome! Primeiro chame topdesk_list_operators para obter o UUID.',
+          description: 'UUID do operador responsável - NÃO use nome! Primeiro chame topdesk_list_operators para obter o UUID. ATENÇÃO: operator requer UUID, não aceita nome.',
         },
         operatorGroup: {
           type: 'string',
-          description: 'UUID do grupo de operadores - NÃO use nome! Use topdesk_list_operator_groups (quando implementado).',
+          description: 'UUID do grupo de operadores - NÃO use nome! Use topdesk_list_operator_groups (quando implementado). ATENÇÃO: operatorGroup requer UUID.',
         },
       },
       required: ['briefDescription'],
@@ -232,19 +232,19 @@ const tools: Tool[] = [
         },
         category: {
           type: 'string',
-          description: 'UUID da categoria - NÃO use nome! Obtenha com topdesk_list_incident_categories',
+          description: 'Categoria - pode ser UUID ou NOME (ex: "Hardware"). Será automaticamente convertido.',
         },
         subcategory: {
           type: 'string',
-          description: 'UUID da subcategoria - NÃO use nome! Obtenha com topdesk_list_incident_subcategories',
+          description: 'Subcategoria - pode ser UUID ou NOME. Será automaticamente convertido.',
         },
         operator: {
           type: 'string',
-          description: 'UUID do operador responsável - NÃO use nome! Primeiro chame topdesk_list_operators para obter o UUID.',
+          description: 'UUID do operador responsável - NÃO use nome! ATENÇÃO: operator requer UUID, não aceita nome. Obtenha de incidents existentes.',
         },
         processingStatus: {
           type: 'string',
-          description: 'UUID do status de processamento - obtenha com topdesk_get_incident_statuses',
+          description: 'Status de processamento - pode ser UUID ou NOME. Será automaticamente convertido.',
         },
         completed: {
           type: 'boolean',
@@ -743,6 +743,57 @@ const tools: Tool[] = [
       required: ['id'],
     },
   },
+  {
+    name: 'topdesk_list_operator_groups',
+    description:
+      'Lista grupos de operadores do TOPdesk. IMPORTANTE: Use este tool para descobrir grupos válidos antes de atribuir operatorGroup a incidents. Grupos listados aqui PODEM ser usados em incidents.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        archived: {
+          type: 'boolean',
+          description: 'Incluir grupos arquivados',
+        },
+        start: {
+          type: 'number',
+          description: 'Índice inicial para paginação',
+        },
+        page_size: {
+          type: 'number',
+          description: 'Quantidade de resultados (use 1000 para listar todos)',
+        },
+      },
+    },
+  },
+  {
+    name: 'topdesk_get_operator_group_by_id',
+    description: 'Obtém detalhes de um grupo de operadores específico pelo ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+          description: 'ID (UUID) do grupo de operadores',
+        },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'topdesk_extract_valid_operator_groups',
+    description:
+      'FERRAMENTA CRÍTICA: Extrai grupos de operadores VÁLIDOS de incidents existentes. Use isto para descobrir quais grupos podem ser usados ao atribuir operatorGroup. Retorna lista única de grupos que aparecem em incidents reais.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pageSize: {
+          type: 'number',
+          description: 'Quantidade de incidents a analisar (recomendado: 100-500)',
+          default: 200,
+        },
+      },
+    },
+  },
 ];
 
 // ========== Tool Handlers ==========
@@ -1231,6 +1282,72 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: 'text',
             text: JSON.stringify(person, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_list_operator_groups') {
+      const groups = await topdeskClient.listOperatorGroups(args as any);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(groups, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_get_operator_group_by_id') {
+      const { id } = args as { id: string };
+      const group = await topdeskClient.getOperatorGroupById(id);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(group, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_extract_valid_operator_groups') {
+      const { pageSize = 200 } = args as { pageSize?: number };
+      
+      // Buscar incidents com informação de operatorGroup
+      const incidents = await topdeskClient.listIncidents({
+        pageSize,
+        fields: 'operatorGroup',
+      });
+
+      // Extrair grupos únicos
+      const groupsMap = new Map<string, any>();
+      
+      for (const incident of incidents) {
+        if (incident.operatorGroup && incident.operatorGroup.id) {
+          const group = incident.operatorGroup;
+          if (!groupsMap.has(group.id)) {
+            groupsMap.set(group.id, {
+              id: group.id,
+              name: group.name || 'Unknown',
+            });
+          }
+        }
+      }
+
+      const uniqueGroups = Array.from(groupsMap.values());
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              totalIncidentsAnalyzed: incidents.length,
+              uniqueGroupsFound: uniqueGroups.length,
+              groups: uniqueGroups,
+              usage: 'Use os IDs destes grupos para atribuir operatorGroup - eles são VÁLIDOS!',
+            }, null, 2),
           },
         ],
       };

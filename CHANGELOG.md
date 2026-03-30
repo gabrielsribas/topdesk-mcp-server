@@ -18,9 +18,17 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ### ✨ Adicionado
 - Arquivo `FIQL_EXAMPLES.md` com exemplos práticos de queries FIQL
+- Arquivo `MANIPULATION_EXAMPLES.md` com 30+ exemplos de manipulação de incidents
 - Documentação expandida em `API_LIMITATIONS.md` sobre uso de FIQL
 - Exemplos de filtros: por data, operador, grupo, prioridade, categoria, etc.
 - **Guideline de Context Window**: Como usar `fields` para evitar overflow
+- **Suporte a nomes em campos relacionais**: category, priority, impact, urgency agora aceitam nomes além de UUIDs
+  - Exemplo: `priority: "High"` funciona, não precisa mais de UUID
+  - Detecção automática: UUID → `{id: uuid}`, Nome → `{name: text}`
+- **🎉 Tools para Operator Groups (CRÍTICO para realocação de chamados):**
+  - `topdesk_list_operator_groups` - lista todos os grupos de operadores
+  - `topdesk_get_operator_group_by_id` - obtém detalhes de um grupo
+  - **`topdesk_extract_valid_operator_groups`** - extrai grupos VÁLIDOS de incidents existentes (recomendado!)
 
 ### 📝 Mudado
 - Tool `topdesk_list_incidents` agora aceita parâmetros corretos da API do TOPdesk
@@ -69,10 +77,11 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - `listServices`: `page_size` → `pageSize`, `start` → `pageStart`
 - Isso permite que MCP tools usem snake_case (padrão Python) enquanto API recebe camelCase (padrão JavaScript)
 - **Adicionada transformação automática de campos relacionais:**
-  - `operator: "uuid"` → `operator: {id: "uuid"}`
-  - `category: "uuid"` → `category: {id: "uuid"}`
-  - Aplica-se a: operator, operatorGroup, category, subcategory, priority, impact, urgency, callType, entryType, processingStatus, object, branch, mainIncident, escalationReason
-  - Método `transformRelationalFields()` aplicado em create/update incidents
+  - UUID detectado (formato 8-4-4-4-12) → `{id: "uuid"}`
+  - Nome detectado (texto não-UUID) → `{name: "text"}`
+  - Campos suportados: operator, operatorGroup, category, subcategory, priority, impact, urgency, callType, entryType, processingStatus
+  - **NOTA**: operator/operatorGroup requerem UUID, mas category/priority/impact/urgency ACEITAM nomes
+  - Método `transformRelationalFields()` com regex UUID aplicado em create/update incidents
 
 ---
 

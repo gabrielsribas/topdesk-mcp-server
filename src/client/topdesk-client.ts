@@ -100,9 +100,12 @@ export class TopdeskClient {
   }
 
   /**
-   * Transforma campos relacionais de string UUID para objeto {id: UUID}
+   * Transforma campos relacionais de string para objeto {id: UUID} ou {name: string}
    * A API do TOPdesk requer que campos como operator, category, priority, etc.
-   * sejam enviados como objetos: { "id": "uuid" } e não strings diretas.
+   * sejam enviados como objetos.
+   * 
+   * Se o valor for UUID (formato 8-4-4-4-12), usa {id: uuid}
+   * Se o valor for outro texto, usa {name: text} (funciona para category, priority, etc.)
    */
   private transformRelationalFields(data: any): any {
     if (!data || typeof data !== 'object') return data;
@@ -124,12 +127,25 @@ export class TopdeskClient {
       'escalationReason',
     ];
 
+    // Regex para detectar UUID (formato: 8-4-4-4-12 caracteres hexadecimais)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     const transformed = { ...data };
 
     for (const field of relationalFields) {
       if (field in transformed && typeof transformed[field] === 'string') {
-        // Se é uma string UUID, transformar em objeto {id: uuid}
-        transformed[field] = { id: transformed[field] };
+        const value = transformed[field];
+        
+        // Detectar se é UUID ou nome
+        if (uuidRegex.test(value)) {
+          // É UUID - usar {id: value}
+          transformed[field] = { id: value };
+        } else {
+          // Não é UUID - tentar usar como nome {name: value}
+          // Nota: operator e operatorGroup geralmente NÃO aceitam name, apenas id
+          // Mas category, priority, impact, urgency, callType, etc. ACEITAM name
+          transformed[field] = { name: value };
+        }
       }
     }
 
@@ -608,6 +624,46 @@ export class TopdeskClient {
    */
   async getPersonById(id: string): Promise<any> {
     const response = await this.client.get<any>(`/persons/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Lista grupos de operadores
+   */
+  async listOperatorGroups(params?: {
+    archived?: boolean;
+    start?: number;
+    page_size?: number;
+  }): Promise<any[]> {
+    const cleanParams = params
+      ? Object.fromEntries(
+          Object.entries(params)
+            .filter(
+              ([_, value]) =>
+                value !== undefined &&
+                value !== null &&
+                (typeof value !== 'string' || value !== '') &&
+                !(typeof value === 'number' && isNaN(value))
+            )
+            .map(([key, value]) => {
+              if (key === 'page_size') return ['pageSize', value];
+              if (key === 'start') return ['pageStart', value];
+              return [key, value];
+            })
+        )
+      : undefined;
+
+    const response = await this.client.get<any[]>('/operatorgroups', {
+      params: cleanParams,
+    });
+    return response.data;
+  }
+
+  /**
+   * Obtém grupo de operadores por ID
+   */
+  async getOperatorGroupById(id: string): Promise<any> {
+    const response = await this.client.get<any>(`/operatorgroups/id/${id}`);
     return response.data;
   }
 }
