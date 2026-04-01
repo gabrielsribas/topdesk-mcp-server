@@ -1362,11 +1362,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         includeStats?: boolean;
       };
       
-      // Buscar incidents com informação de operatorGroup
+      // Buscar incidents sem restringir fields para obter dados completos
       const incidents = await topdeskClient.listIncidents({
         pageSize,
-        fields: 'id,number,operatorGroup,closed,completed',
       });
+
+      console.error(`[TOPdesk] Analyzing ${incidents.length} incidents for operator groups`);
 
       // Extrair grupos únicos e contar
       const groupsMap = new Map<string, { 
@@ -1381,6 +1382,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (incident.operatorGroup && incident.operatorGroup.id) {
           const group = incident.operatorGroup;
           const groupId = group.id;
+          
+          console.error(`[TOPdesk] Found operatorGroup in incident ${incident.number}: ${JSON.stringify(group)}`);
           
           if (!groupsMap.has(groupId)) {
             groupsMap.set(groupId, {
@@ -1406,6 +1409,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const uniqueGroups = Array.from(groupsMap.values())
         .sort((a, b) => b.openIncidents - a.openIncidents); // Ordenar por carga
 
+      console.error(`[TOPdesk] Found ${uniqueGroups.length} unique operator groups`);
+
       return {
         content: [
           {
@@ -1428,18 +1433,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         includeStats?: boolean;
       };
       
-      // Buscar incidents SEM restringir fields - pega tudo
+      // Buscar incidents sem restringir fields para obter dados completos
       const incidents = await topdeskClient.listIncidents({
         pageSize,
-        // NÃO especificar fields - deixa API retornar tudo
       });
 
       console.error(`[TOPdesk] Analyzing ${incidents.length} incidents for operators`);
-      
-      // Logar estrutura do primeiro incident para debug
-      if (incidents.length > 0) {
-        console.error(`[TOPdesk] Sample incident structure:`, JSON.stringify(incidents[0], null, 2));
-      }
 
       // Extrair operators únicos e contar
       const operatorsMap = new Map<string, {
