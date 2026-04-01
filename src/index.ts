@@ -1428,13 +1428,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         includeStats?: boolean;
       };
       
-      // Buscar incidents com informação de operator
+      // Buscar incidents SEM restringir fields - pega tudo
       const incidents = await topdeskClient.listIncidents({
         pageSize,
-        fields: 'id,number,operator,closed,completed',
+        // NÃO especificar fields - deixa API retornar tudo
       });
 
       console.error(`[TOPdesk] Analyzing ${incidents.length} incidents for operators`);
+      
+      // Logar estrutura do primeiro incident para debug
+      if (incidents.length > 0) {
+        console.error(`[TOPdesk] Sample incident structure:`, JSON.stringify(incidents[0], null, 2));
+      }
 
       // Extrair operators únicos e contar
       const operatorsMap = new Map<string, {
@@ -1482,7 +1487,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       console.error(`[TOPdesk] Unique operators: ${operatorsMap.size}`);
 
       const uniqueOperators = Array.from(operatorsMap.values())
-        .sort((a, b) => b.openIncidents - a.openIncidents); // Ordenar por carga
+        .sort((a, b) => b.openIncidents - a.openIncidents);
 
       return {
         content: [
@@ -1496,12 +1501,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               operators: includeStats ? uniqueOperators : uniqueOperators.map(o => ({ id: o.id, name: o.name })),
               usage: uniqueOperators.length > 0 
                 ? 'Estes operadores aparecem em incidents reais. IDs podem ser usados para consultas FIQL.'
-                : 'AVISO: Nenhum operator encontrado nos incidents analisados. Tente: 1) Aumentar pageSize, 2) Usar query para filtrar incidents específicos, 3) Verificar se incidents têm operator atribuído.',
+                : 'AVISO: Nenhum operator encontrado nos incidents analisados. Possíveis causas: 1) Incidents não têm operator atribuído, 2) Use filtro FIQL para buscar incidents específicos, 3) Campo operator pode ter nome diferente na API.',
               topOperators: uniqueOperators.slice(0, 10).map(o => ({
                 name: o.name,
                 openIncidents: o.openIncidents,
                 totalIncidents: o.totalIncidents,
               })),
+              debug: incidents.length > 0 ? {
+                sampleIncidentKeys: Object.keys(incidents[0]),
+                message: 'Veja logs do servidor para estrutura completa do incident'
+              } : undefined,
             }, null, 2),
           },
         ],
