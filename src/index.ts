@@ -64,7 +64,7 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_incidents',
     description:
-      'Lista incidents do TOPdesk. IMPORTANTE: Use "fields" para retornar apenas campos essenciais e evitar context window overflow. Recomendado: fields="id,number,briefDescription,status,creationDate,operator,operatorGroup". Use "query" com sintaxe FIQL para filtros: closed==false (não fechados), operatorGroup.name==Sustentação (por grupo), creationDate=ge=2026-03-01T00:00:00Z (últimos 30 dias).',
+      'Lista incidents do TOPdesk com DADOS COMPLETOS incluindo operator, operatorGroup, priority, category, status, timestamps, etc. Por padrão retorna todos os campos. Use "query" com sintaxe FIQL para filtros: closed==false (não fechados), priority.name==P1 (críticos), operatorGroup.name==Sustentação (por grupo), creationDate=ge=2026-03-01T00:00:00Z (últimos 30 dias). EVITE usar "fields" a menos que precise reduzir drasticamente o volume de dados (1000+ incidents).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -75,7 +75,7 @@ const tools: Tool[] = [
         pageSize: {
           type: 'number',
           description:
-            'Quantidade máxima de incidents (1-10000). Recomendado: 20-50 para evitar context overflow. Use 100+ apenas com "fields" específico.',
+            'Quantidade de incidents a retornar (1-10000). Padrão recomendado: 50-100 para análises. Use 200+ para estatísticas. A API retorna dados completos sem "fields".',
         },
         query: {
           type: 'string',
@@ -90,7 +90,7 @@ const tools: Tool[] = [
         fields: {
           type: 'string',
           description:
-            'CRÍTICO para grandes consultas: Lista campos separados por vírgula. Recomendado: "id,number,briefDescription,status,creationDate,operator,operatorGroup,priority,category". Reduz drasticamente o tamanho da resposta.',
+            'AVISO: Usar este campo pode impedir a API de retornar dados importantes. Use APENAS para otimização de consultas muito grandes (1000+ incidents). Para análises normais, NÃO use este parâmetro para obter dados completos de operator, operatorGroup, priority, category, etc.',
         },
         dateFormat: {
           type: 'string',
@@ -852,7 +852,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // ===== INCIDENTS =====
     if (name === 'topdesk_list_incidents') {
-      const incidents = await topdeskClient.listIncidents(args as any);
+      const params = args as any;
+      
+      // AVISO: Se fields for especificado, a API pode não retornar campos importantes
+      if (params?.fields) {
+        console.error('[TOPdesk] WARNING: fields parameter specified, this may limit data returned');
+      }
+      
+      console.error(`[TOPdesk] Listing incidents with params:`, JSON.stringify(params, null, 2));
+      
+      const incidents = await topdeskClient.listIncidents(params);
+      
+      console.error(`[TOPdesk] Retrieved ${incidents.length} incidents`);
+      if (incidents.length > 0) {
+        const sample = incidents[0];
+        console.error(`[TOPdesk] Sample incident has fields: operator=${!!sample.operator}, operatorGroup=${!!sample.operatorGroup}, priority=${!!sample.priority}, category=${!!sample.category}`);
+      }
+      
       return {
         content: [
           {
