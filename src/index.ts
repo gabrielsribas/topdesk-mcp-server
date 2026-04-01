@@ -1522,12 +1522,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         query?: string;
       };
       
-      // Buscar incidents com todos os campos relevantes
+      // Buscar incidents sem restringir fields para obter dados completos
       const incidents = await topdeskClient.listIncidents({
         pageSize,
         query,
-        fields: 'id,number,operator,operatorGroup,category,subcategory,priority,status,processingStatus,closed,completed',
       });
+
+      console.error(`[TOPdesk] Distribution analysis: analyzing ${incidents.length} incidents`);
 
       // Análise por operatorGroup
       const groupsMap = new Map<string, number>();
@@ -1546,6 +1547,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (incident.operatorGroup?.name) {
           const current = groupsMap.get(incident.operatorGroup.name) || 0;
           groupsMap.set(incident.operatorGroup.name, current + 1);
+          if (groupsMap.size <= 3) {
+            console.error(`[TOPdesk] Found group: ${incident.operatorGroup.name}`);
+          }
         } else {
           withoutGroup++;
         }
@@ -1554,6 +1558,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (incident.operator?.name) {
           const current = operatorsMap.get(incident.operator.name) || 0;
           operatorsMap.set(incident.operator.name, current + 1);
+          if (operatorsMap.size <= 3) {
+            console.error(`[TOPdesk] Found operator: ${incident.operator.name}`);
+          }
         } else {
           withoutOperator++;
         }
@@ -1562,12 +1569,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (incident.category?.name) {
           const current = categoriesMap.get(incident.category.name) || 0;
           categoriesMap.set(incident.category.name, current + 1);
+          if (categoriesMap.size <= 3) {
+            console.error(`[TOPdesk] Found category: ${incident.category.name}`);
+          }
         }
 
         // Contar por prioridade
         if (incident.priority?.name) {
           const current = prioritiesMap.get(incident.priority.name) || 0;
           prioritiesMap.set(incident.priority.name, current + 1);
+          if (prioritiesMap.size <= 3) {
+            console.error(`[TOPdesk] Found priority: ${incident.priority.name}`);
+          }
         }
 
         // Contar por status
@@ -1587,6 +1600,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         Array.from(map.entries())
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count);
+
+      console.error(`[TOPdesk] Distribution found: ${groupsMap.size} groups, ${operatorsMap.size} operators, ${categoriesMap.size} categories, ${prioritiesMap.size} priorities`);
 
       return {
         content: [
