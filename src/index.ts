@@ -1434,6 +1434,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         fields: 'id,number,operator,closed,completed',
       });
 
+      console.error(`[TOPdesk] Analyzing ${incidents.length} incidents for operators`);
+
       // Extrair operators únicos e contar
       const operatorsMap = new Map<string, {
         id: string;
@@ -1443,31 +1445,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         closedIncidents: number;
       }>();
       
+      let incidentsWithOperator = 0;
+      
       for (const incident of incidents) {
-        if (incident.operator && incident.operator.id) {
-          const operator = incident.operator;
-          const operatorId = operator.id;
+        if (incident.operator) {
+          console.error(`[TOPdesk] Found operator in incident ${incident.number}:`, JSON.stringify(incident.operator));
+          incidentsWithOperator++;
           
-          if (!operatorsMap.has(operatorId)) {
-            operatorsMap.set(operatorId, {
-              id: operatorId,
-              name: operator.name || 'Unknown',
-              totalIncidents: 0,
-              openIncidents: 0,
-              closedIncidents: 0,
-            });
-          }
-          
-          const stats = operatorsMap.get(operatorId)!;
-          stats.totalIncidents++;
-          
-          if (incident.closed || incident.completed) {
-            stats.closedIncidents++;
-          } else {
-            stats.openIncidents++;
+          if (incident.operator.id) {
+            const operator = incident.operator;
+            const operatorId = operator.id;
+            
+            if (!operatorsMap.has(operatorId)) {
+              operatorsMap.set(operatorId, {
+                id: operatorId,
+                name: operator.name || 'Unknown',
+                totalIncidents: 0,
+                openIncidents: 0,
+                closedIncidents: 0,
+              });
+            }
+            
+            const stats = operatorsMap.get(operatorId)!;
+            stats.totalIncidents++;
+            
+            if (incident.closed || incident.completed) {
+              stats.closedIncidents++;
+            } else {
+              stats.openIncidents++;
+            }
           }
         }
       }
+
+      console.error(`[TOPdesk] Found ${incidentsWithOperator} incidents with operator field`);
+      console.error(`[TOPdesk] Unique operators: ${operatorsMap.size}`);
 
       const uniqueOperators = Array.from(operatorsMap.values())
         .sort((a, b) => b.openIncidents - a.openIncidents); // Ordenar por carga
@@ -1478,13 +1490,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             type: 'text',
             text: JSON.stringify({
               totalIncidentsAnalyzed: incidents.length,
-              incidentsWithoutOperator: incidents.filter(i => !i.operator).length,
+              incidentsWithOperatorField: incidentsWithOperator,
+              incidentsWithoutOperator: incidents.length - incidentsWithOperator,
               uniqueOperatorsFound: uniqueOperators.length,
               operators: includeStats ? uniqueOperators : uniqueOperators.map(o => ({ id: o.id, name: o.name })),
-              usage: 'Estes operadores aparecem em incidents reais. IDs podem ser usados para consultas FIQL.',
+              usage: uniqueOperators.length > 0 
+                ? 'Estes operadores aparecem em incidents reais. IDs podem ser usados para consultas FIQL.'
+                : 'AVISO: Nenhum operator encontrado nos incidents analisados. Tente: 1) Aumentar pageSize, 2) Usar query para filtrar incidents específicos, 3) Verificar se incidents têm operator atribuído.',
               topOperators: uniqueOperators.slice(0, 10).map(o => ({
                 name: o.name,
                 openIncidents: o.openIncidents,
+                totalIncidents: o.totalIncidents,
               })),
             }, null, 2),
           },
