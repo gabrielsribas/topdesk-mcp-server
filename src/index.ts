@@ -64,7 +64,7 @@ const tools: Tool[] = [
   {
     name: 'topdesk_list_incidents',
     description:
-      'Lista incidents do TOPdesk. IMPORTANTE: Use "fields" para retornar apenas campos essenciais e evitar context window overflow. Recomendado: fields="id,number,briefDescription,status,creationDate,operator,operatorGroup". Use "query" com sintaxe FIQL para filtros: closed==false (não fechados), operatorGroup.name==Sustentação (por grupo), creationDate=ge=2026-03-01T00:00:00Z (últimos 30 dias).',
+      'Lista incidents do TOPdesk com DADOS COMPLETOS incluindo operator, operatorGroup, priority, category, status, timestamps, etc. Por padrão retorna todos os campos. Use "query" com sintaxe FIQL para filtros: closed==false (não fechados), priority.name==P1 (críticos), operatorGroup.name==Sustentação (por grupo), creationDate=ge=2026-03-01T00:00:00Z (últimos 30 dias). EVITE usar "fields" a menos que precise reduzir drasticamente o volume de dados (1000+ incidents).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -75,7 +75,7 @@ const tools: Tool[] = [
         pageSize: {
           type: 'number',
           description:
-            'Quantidade máxima de incidents (1-10000). Recomendado: 20-50 para evitar context overflow. Use 100+ apenas com "fields" específico.',
+            'Quantidade de incidents a retornar (1-10000). Padrão recomendado: 50-100 para análises. Use 200+ para estatísticas. A API retorna dados completos sem "fields".',
         },
         query: {
           type: 'string',
@@ -90,7 +90,7 @@ const tools: Tool[] = [
         fields: {
           type: 'string',
           description:
-            'CRÍTICO para grandes consultas: Lista campos separados por vírgula. Recomendado: "id,number,briefDescription,status,creationDate,operator,operatorGroup,priority,category". Reduz drasticamente o tamanho da resposta.',
+            'AVISO: Usar este campo pode impedir a API de retornar dados importantes. Use APENAS para otimização de consultas muito grandes (1000+ incidents). Para análises normais, NÃO use este parâmetro para obter dados completos de operator, operatorGroup, priority, category, etc.',
         },
         dateFormat: {
           type: 'string',
@@ -782,7 +782,7 @@ const tools: Tool[] = [
   {
     name: 'topdesk_extract_valid_operator_groups',
     description:
-      'FERRAMENTA CRÍTICA: Extrai grupos de operadores VÁLIDOS de incidents existentes. Use isto para descobrir quais grupos podem ser usados ao atribuir operatorGroup. Retorna lista única de grupos que aparecem em incidents reais.',
+      'FERRAMENTA CRÍTICA: Extrai grupos de operadores VÁLIDOS de incidents existentes. Use isto para descobrir quais grupos podem ser usados ao atribuir operatorGroup. Retorna lista única de grupos que aparecem em incidents reais com estatísticas.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -790,6 +790,50 @@ const tools: Tool[] = [
           type: 'number',
           description: 'Quantidade de incidents a analisar (recomendado: 100-500)',
           default: 200,
+        },
+        includeStats: {
+          type: 'boolean',
+          description: 'Se true, inclui estatísticas de quantos chamados cada grupo tem',
+          default: true,
+        },
+      },
+    },
+  },
+  {
+    name: 'topdesk_extract_valid_operators',
+    description:
+      'FERRAMENTA CRÍTICA: Extrai operadores VÁLIDOS de incidents existentes. Use isto para descobrir quais operadores aparecem em incidents reais. Retorna lista com estatísticas de carga de trabalho.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pageSize: {
+          type: 'number',
+          description: 'Quantidade de incidents a analisar (recomendado: 200-500)',
+          default: 300,
+        },
+        includeStats: {
+          type: 'boolean',
+          description: 'Se true, inclui estatísticas de quantos chamados cada operador tem',
+          default: true,
+        },
+      },
+    },
+  },
+  {
+    name: 'topdesk_get_incident_distribution',
+    description:
+      'ANÁLISE COMPLETA: Retorna distribuição de incidents por operator, operatorGroup, categoria, prioridade, status. Ideal para dashboards e análises gerenciais.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pageSize: {
+          type: 'number',
+          description: 'Quantidade de incidents a analisar',
+          default: 200,
+        },
+        query: {
+          type: 'string',
+          description: 'Filtro FIQL opcional (ex: creationDate=ge=2026-03-01T00:00:00Z)',
         },
       },
     },
@@ -808,7 +852,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // ===== INCIDENTS =====
     if (name === 'topdesk_list_incidents') {
-      const incidents = await topdeskClient.listIncidents(args as any);
+      const params = args as any;
+      
+      // AVISO: Se fields for especificado, a API pode não retornar campos importantes
+      if (params?.fields) {
+        console.error('[TOPdesk] WARNING: fields parameter specified, this may limit data returned');
+      }
+      
+      console.error(`[TOPdesk] Listing incidents with params:`, JSON.stringify(params, null, 2));
+      
+      const incidents = await topdeskClient.listIncidents(params);
+      
+      console.error(`[TOPdesk] Retrieved ${incidents.length} incidents`);
+      if (incidents.length > 0) {
+        const sample = incidents[0];
+        console.error(`[TOPdesk] Sample incident has fields: operator=${!!sample.operator}, operatorGroup=${!!sample.operatorGroup}, priority=${!!sample.priority}, category=${!!sample.category}`);
+      }
+      
       return {
         content: [
           {
@@ -1313,30 +1373,59 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'topdesk_extract_valid_operator_groups') {
-      const { pageSize = 200 } = args as { pageSize?: number };
+      const { pageSize = 200, includeStats = true } = args as { 
+        pageSize?: number;
+        includeStats?: boolean;
+      };
       
-      // Buscar incidents com informação de operatorGroup
+      // Buscar incidents sem restringir fields para obter dados completos
       const incidents = await topdeskClient.listIncidents({
         pageSize,
-        fields: 'operatorGroup',
       });
 
-      // Extrair grupos únicos
-      const groupsMap = new Map<string, any>();
+      console.error(`[TOPdesk] Analyzing ${incidents.length} incidents for operator groups`);
+
+      // Extrair grupos únicos e contar
+      const groupsMap = new Map<string, { 
+        id: string; 
+        name: string; 
+        totalIncidents: number;
+        openIncidents: number;
+        closedIncidents: number;
+      }>();
       
       for (const incident of incidents) {
         if (incident.operatorGroup && incident.operatorGroup.id) {
           const group = incident.operatorGroup;
-          if (!groupsMap.has(group.id)) {
-            groupsMap.set(group.id, {
-              id: group.id,
+          const groupId = group.id;
+          
+          console.error(`[TOPdesk] Found operatorGroup in incident ${incident.number}: ${JSON.stringify(group)}`);
+          
+          if (!groupsMap.has(groupId)) {
+            groupsMap.set(groupId, {
+              id: groupId,
               name: group.name || 'Unknown',
+              totalIncidents: 0,
+              openIncidents: 0,
+              closedIncidents: 0,
             });
+          }
+          
+          const stats = groupsMap.get(groupId)!;
+          stats.totalIncidents++;
+          
+          if (incident.closed || incident.completed) {
+            stats.closedIncidents++;
+          } else {
+            stats.openIncidents++;
           }
         }
       }
 
-      const uniqueGroups = Array.from(groupsMap.values());
+      const uniqueGroups = Array.from(groupsMap.values())
+        .sort((a, b) => b.openIncidents - a.openIncidents); // Ordenar por carga
+
+      console.error(`[TOPdesk] Found ${uniqueGroups.length} unique operator groups`);
 
       return {
         content: [
@@ -1344,9 +1433,209 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             type: 'text',
             text: JSON.stringify({
               totalIncidentsAnalyzed: incidents.length,
+              incidentsWithoutGroup: incidents.filter(i => !i.operatorGroup).length,
               uniqueGroupsFound: uniqueGroups.length,
-              groups: uniqueGroups,
+              groups: includeStats ? uniqueGroups : uniqueGroups.map(g => ({ id: g.id, name: g.name })),
               usage: 'Use os IDs destes grupos para atribuir operatorGroup - eles são VÁLIDOS!',
+            }, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_extract_valid_operators') {
+      const { pageSize = 300, includeStats = true } = args as {
+        pageSize?: number;
+        includeStats?: boolean;
+      };
+      
+      // Buscar incidents sem restringir fields para obter dados completos
+      const incidents = await topdeskClient.listIncidents({
+        pageSize,
+      });
+
+      console.error(`[TOPdesk] Analyzing ${incidents.length} incidents for operators`);
+
+      // Extrair operators únicos e contar
+      const operatorsMap = new Map<string, {
+        id: string;
+        name: string;
+        totalIncidents: number;
+        openIncidents: number;
+        closedIncidents: number;
+      }>();
+      
+      let incidentsWithOperator = 0;
+      
+      for (const incident of incidents) {
+        if (incident.operator) {
+          console.error(`[TOPdesk] Found operator in incident ${incident.number}:`, JSON.stringify(incident.operator));
+          incidentsWithOperator++;
+          
+          if (incident.operator.id) {
+            const operator = incident.operator;
+            const operatorId = operator.id;
+            
+            if (!operatorsMap.has(operatorId)) {
+              operatorsMap.set(operatorId, {
+                id: operatorId,
+                name: operator.name || 'Unknown',
+                totalIncidents: 0,
+                openIncidents: 0,
+                closedIncidents: 0,
+              });
+            }
+            
+            const stats = operatorsMap.get(operatorId)!;
+            stats.totalIncidents++;
+            
+            if (incident.closed || incident.completed) {
+              stats.closedIncidents++;
+            } else {
+              stats.openIncidents++;
+            }
+          }
+        }
+      }
+
+      console.error(`[TOPdesk] Found ${incidentsWithOperator} incidents with operator field`);
+      console.error(`[TOPdesk] Unique operators: ${operatorsMap.size}`);
+
+      const uniqueOperators = Array.from(operatorsMap.values())
+        .sort((a, b) => b.openIncidents - a.openIncidents);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              totalIncidentsAnalyzed: incidents.length,
+              incidentsWithOperatorField: incidentsWithOperator,
+              incidentsWithoutOperator: incidents.length - incidentsWithOperator,
+              uniqueOperatorsFound: uniqueOperators.length,
+              operators: includeStats ? uniqueOperators : uniqueOperators.map(o => ({ id: o.id, name: o.name })),
+              usage: uniqueOperators.length > 0 
+                ? 'Estes operadores aparecem em incidents reais. IDs podem ser usados para consultas FIQL.'
+                : 'AVISO: Nenhum operator encontrado nos incidents analisados. Possíveis causas: 1) Incidents não têm operator atribuído, 2) Use filtro FIQL para buscar incidents específicos, 3) Campo operator pode ter nome diferente na API.',
+              topOperators: uniqueOperators.slice(0, 10).map(o => ({
+                name: o.name,
+                openIncidents: o.openIncidents,
+                totalIncidents: o.totalIncidents,
+              })),
+              debug: incidents.length > 0 ? {
+                sampleIncidentKeys: Object.keys(incidents[0]),
+                message: 'Veja logs do servidor para estrutura completa do incident'
+              } : undefined,
+            }, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_get_incident_distribution') {
+      const { pageSize = 200, query } = args as {
+        pageSize?: number;
+        query?: string;
+      };
+      
+      // Buscar incidents sem restringir fields para obter dados completos
+      const incidents = await topdeskClient.listIncidents({
+        pageSize,
+        query,
+      });
+
+      console.error(`[TOPdesk] Distribution analysis: analyzing ${incidents.length} incidents`);
+
+      // Análise por operatorGroup
+      const groupsMap = new Map<string, number>();
+      const operatorsMap = new Map<string, number>();
+      const categoriesMap = new Map<string, number>();
+      const prioritiesMap = new Map<string, number>();
+      const statusMap = new Map<string, number>();
+      
+      let openCount = 0;
+      let closedCount = 0;
+      let withoutGroup = 0;
+      let withoutOperator = 0;
+
+      for (const incident of incidents) {
+        // Contar por grupo
+        if (incident.operatorGroup?.name) {
+          const current = groupsMap.get(incident.operatorGroup.name) || 0;
+          groupsMap.set(incident.operatorGroup.name, current + 1);
+          if (groupsMap.size <= 3) {
+            console.error(`[TOPdesk] Found group: ${incident.operatorGroup.name}`);
+          }
+        } else {
+          withoutGroup++;
+        }
+
+        // Contar por operator
+        if (incident.operator?.name) {
+          const current = operatorsMap.get(incident.operator.name) || 0;
+          operatorsMap.set(incident.operator.name, current + 1);
+          if (operatorsMap.size <= 3) {
+            console.error(`[TOPdesk] Found operator: ${incident.operator.name}`);
+          }
+        } else {
+          withoutOperator++;
+        }
+
+        // Contar por categoria
+        if (incident.category?.name) {
+          const current = categoriesMap.get(incident.category.name) || 0;
+          categoriesMap.set(incident.category.name, current + 1);
+          if (categoriesMap.size <= 3) {
+            console.error(`[TOPdesk] Found category: ${incident.category.name}`);
+          }
+        }
+
+        // Contar por prioridade
+        if (incident.priority?.name) {
+          const current = prioritiesMap.get(incident.priority.name) || 0;
+          prioritiesMap.set(incident.priority.name, current + 1);
+          if (prioritiesMap.size <= 3) {
+            console.error(`[TOPdesk] Found priority: ${incident.priority.name}`);
+          }
+        }
+
+        // Contar por status
+        const status = incident.closed ? 'Fechado' : incident.completed ? 'Completo' : 'Aberto';
+        const current = statusMap.get(status) || 0;
+        statusMap.set(status, current + 1);
+        
+        if (incident.closed || incident.completed) {
+          closedCount++;
+        } else {
+          openCount++;
+        }
+      }
+
+      // Converter maps para arrays ordenados
+      const sortByCount = (map: Map<string, number>) =>
+        Array.from(map.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count);
+
+      console.error(`[TOPdesk] Distribution found: ${groupsMap.size} groups, ${operatorsMap.size} operators, ${categoriesMap.size} categories, ${prioritiesMap.size} priorities`);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              summary: {
+                total: incidents.length,
+                open: openCount,
+                closed: closedCount,
+                withoutGroup,
+                withoutOperator,
+              },
+              byOperatorGroup: sortByCount(groupsMap),
+              byOperator: sortByCount(operatorsMap).slice(0, 20), // Top 20
+              byCategory: sortByCount(categoriesMap),
+              byPriority: sortByCount(prioritiesMap),
+              byStatus: sortByCount(statusMap),
             }, null, 2),
           },
         ],

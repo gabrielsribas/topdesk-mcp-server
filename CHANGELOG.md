@@ -28,7 +28,10 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - **🎉 Tools para Operator Groups (CRÍTICO para realocação de chamados):**
   - `topdesk_list_operator_groups` - lista todos os grupos de operadores
   - `topdesk_get_operator_group_by_id` - obtém detalhes de um grupo
-  - **`topdesk_extract_valid_operator_groups`** - extrai grupos VÁLIDOS de incidents existentes (recomendado!)
+  - **`topdesk_extract_valid_operator_groups`** - extrai grupos VÁLIDOS de incidents existentes com estatísticas
+- **🎉 Tools para análise de Operators:**
+  - **`topdesk_extract_valid_operators`** - extrai operadores de incidents com estatísticas de carga
+  - **`topdesk_get_incident_distribution`** - análise completa de distribuição por operator, group, categoria, prioridade
 
 ### 📝 Mudado
 - Tool `topdesk_list_incidents` agora aceita parâmetros corretos da API do TOPdesk
