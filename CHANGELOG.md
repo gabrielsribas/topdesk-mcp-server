@@ -7,6 +7,31 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.42] - 2026-04-02
+
+### 🐛 Corrigido
+- **CRÍTICO**: Parâmetro `fields` impedia API de retornar dados (comportamento paradoxal da API TOPdesk)
+- `topdesk_extract_valid_operators` retornando 0 operadores - removido `fields` restriction
+- `topdesk_extract_valid_operator_groups` retornando 0 grupos - removido `fields` restriction
+- `topdesk_get_incident_distribution` retornando dados vazios - removido `fields` restriction
+- `topdesk_list_incidents` agora DESENCORAJA uso de `fields` para garantir dados completos
+- Campos `operator`, `operatorGroup`, `priority`, `category` agora retornados corretamente
+
+### ✨ Adicionado
+- Logging detalhado em todas as ferramentas de extração
+- Avisos quando parâmetro `fields` é usado (pode limitar dados)
+- Validação de presença de campos após cada query
+- Descrições melhoradas nos tools para guiar LLM a não usar `fields`
+
+### 📝 Mudado
+- Recomendação de `pageSize` ajustada para 50-100 (com dados completos)
+- Estratégia invertida: antes encorajava `fields`, agora desencoraja
+- Tool descriptions atualizadas para enfatizar "DADOS COMPLETOS" por padrão
+
+---
+
+## [1.0.0] - 2026-03-27
+
 ### 🔥 BREAKING CHANGES
 
 #### Incident Filters - Agora Usa FIQL
