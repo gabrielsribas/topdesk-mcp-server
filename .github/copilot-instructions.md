@@ -286,7 +286,26 @@ Adicionar entrada antes de `## [Unreleased]` com formato:
 - O que mudou no comportamento
 ```
 
-### 6. Commit das Release Notes
+### 6. Publicar GitHub Release
+Publicar a release com notas na página do GitHub via API REST:
+```bash
+GH_TOKEN="<token_do_remote>"
+curl -s -X POST \
+  -H "Authorization: token $GH_TOKEN" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/repos/gabrielsribas/topdesk-mcp-server/releases \
+  -d '{
+    "tag_name": "v0.1.XX",
+    "target_commitish": "main",
+    "name": "v0.1.XX - <título resumido>",
+    "body": "<release notes em markdown>",
+    "draft": false,
+    "prerelease": false
+  }' | jq '{id: .id, name: .name, html_url: .html_url}'
+```
+> **Dica**: O token está na URL do remote (`git remote get-url origin`)
+
+### 7. Commit das Release Notes
 ```bash
 git add CHANGELOG.md
 git commit -m "docs: update CHANGELOG for v0.1.XX"
@@ -299,9 +318,11 @@ npm run build                                     # 1. Build
 git add .                                         # 2. Stage
 git commit -m "fix: corrigir endpoint de busca"  # 3. Commit
 git push                                          # 4. Push
-git tag -a v0.1.43 -m "Release v0.1.43 - ..."   # 5. Tag
-git push origin v0.1.43                           # 6. Push tag
-# Editar CHANGELOG.md                             # 7. Changelog
+git tag -a v0.1.XX -m "Release v0.1.XX - ..."   # 5. Tag
+git push origin v0.1.XX                           # 6. Push tag
+# Publicar GitHub Release via API                 # 7. GitHub Release
+curl -X POST https://api.github.com/repos/gabrielsribas/topdesk-mcp-server/releases ...
+# Editar CHANGELOG.md                             # 8. Changelog
 git add CHANGELOG.md && git commit -m "docs: ..." && git push
 ```
 
