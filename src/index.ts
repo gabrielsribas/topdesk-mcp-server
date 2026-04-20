@@ -1281,9 +1281,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       console.error(`[TOPdesk] Search query: "${query}" across incidents and changes`);
 
       // Busca paralela em incidents e changes via FIQL (evita 403 do /search)
-      // Operador correto: == com wildcards * (=lk= não existe no TOPdesk FIQL)
-      const escapedQuery = query.replace(/['"]/g, '');
-      const fiqlQuery = `briefDescription==*${escapedQuery}*`;
+      // FIQL não suporta espaços em valores - divide em palavras e usa OR (,)
+      // Filtra palavras curtas (<3 chars) e caracteres especiais FIQL
+      const words = query
+        .split(/\s+/)
+        .map(w => w.replace(/['"();,=<>!]/g, '').trim())
+        .filter(w => w.length >= 3);
+
+      // Usa palavras únicas para montar FIQL com OR entre elas
+      const uniqueWords = [...new Set(words)];
+      const fiqlQuery = uniqueWords.length > 0
+        ? uniqueWords.map(w => `briefDescription==*${w}*`).join(',')
+        : `briefDescription==*${query.replace(/['"();,=<>!\s]/g, '')}*`;
+
+      console.error(`[TOPdesk] FIQL query: ${fiqlQuery}`);
 
       const [incidents, changes] = await Promise.allSettled([
         topdeskClient.listIncidents({ query: fiqlQuery, pageSize }),
