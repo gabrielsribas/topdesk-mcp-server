@@ -524,12 +524,8 @@ export class TopdeskClient {
   /**
    * Busca genérica na API
    */
-  async search(query: string): Promise<any> {
-    const response = await this.client.get('/search', {
-      params: { query },
-    });
-    return response.data;
-  }
+  // Método search removido - endpoint /search requer permissão especial (retorna 403)
+  // Use listIncidents({ query: 'briefDescription=lk=texto' }) ou listChanges() com FIQL
 
   /**
    * Lista categorias e subcategorias

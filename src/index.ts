@@ -649,13 +649,17 @@ const tools: Tool[] = [
   {
     name: 'topdesk_search',
     description:
-      'Realiza uma busca genérica na API do TOPdesk. Útil para buscar por texto livre.',
+      'Busca por texto livre em Incidents E Changes (GMUDs) simultaneamente. Pesquisa na descrição breve, número e outros campos textuais. Ideal para perguntas como "quais chamados/mudanças estão relacionados ao SERVIDOR X ou SISTEMA Y". Retorna resultados separados por tipo (incidents e changes).',
     inputSchema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Texto de busca',
+          description: 'Texto de busca (ex: USPRDSQL08, SQL Server Agent, nome de sistema, etc.)',
+        },
+        pageSize: {
+          type: 'number',
+          description: 'Quantidade de resultados por tipo (padrão: 20)',
         },
       },
       required: ['query'],
@@ -1272,13 +1276,64 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'topdesk_search') {
-      const { query } = args as { query: string };
-      const results = await topdeskClient.search(query);
+      const { query, pageSize = 20 } = args as { query: string; pageSize?: number };
+
+      console.error(`[TOPdesk] Search query: "${query}" across incidents and changes`);
+
+      // Busca paralela em incidents e changes via FIQL (evita 403 do /search)
+      const fiqlQuery = `briefDescription=lk=${query}`;
+
+      const [incidents, changes] = await Promise.allSettled([
+        topdeskClient.listIncidents({ query: fiqlQuery, pageSize }),
+        topdeskClient.listChanges({ query: fiqlQuery, page_size: pageSize }),
+      ]);
+
+      const incidentResults = incidents.status === 'fulfilled' ? incidents.value : [];
+      const changeResults   = changes.status   === 'fulfilled' ? changes.value   : [];
+
+      if (incidents.status === 'rejected') {
+        console.error(`[TOPdesk] Search incidents failed: ${incidents.reason}`);
+      }
+      if (changes.status === 'rejected') {
+        console.error(`[TOPdesk] Search changes failed: ${changes.reason}`);
+      }
+
+      const totalFound = incidentResults.length + changeResults.length;
+      console.error(`[TOPdesk] Search found: ${incidentResults.length} incidents, ${changeResults.length} changes`);
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(results, null, 2),
+            text: JSON.stringify({
+              query,
+              totalFound,
+              incidents: {
+                count: incidentResults.length,
+                results: incidentResults.map((i: any) => ({
+                  id: i.id,
+                  number: i.number,
+                  briefDescription: i.briefDescription,
+                  status: i.processingStatus?.name || i.status,
+                  priority: i.priority?.name,
+                  operator: i.operator?.name,
+                  operatorGroup: i.operatorGroup?.name,
+                  creationDate: i.creationDate,
+                  closed: i.closed,
+                })),
+              },
+              changes: {
+                count: changeResults.length,
+                results: changeResults.map((c: any) => ({
+                  id: c.id,
+                  number: c.number,
+                  briefDescription: c.briefDescription,
+                  status: c.status,
+                  operator: c.operator?.name,
+                  creationDate: c.creationDate,
+                })),
+              },
+            }, null, 2),
           },
         ],
       };
