@@ -7,6 +7,24 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.43] - 2026-04-20
+
+### 🐛 Corrigido
+- **CRÍTICO**: Endpoint `/search` retornava 403 Forbidden para usuários sem permissão especial
+- `topdesk_search` agora usa FIQL em `/incidents` e `/operatorChanges` em paralelo (evita 403)
+- Busca resiliente com `Promise.allSettled` - se um endpoint falhar, retorna o que conseguiu
+- Removido método `search()` do cliente que chamava endpoint restrito
+
+### ✨ Adicionado
+- Retorno estruturado por tipo: `{ incidents: {...}, changes: {...} }` com `totalFound`
+- Logging detalhado da busca (query, resultados por tipo)
+- Campos ricos no resultado: `priority`, `operator`, `operatorGroup`, `status`, `creationDate`
+
+### 📝 Mudado
+- Descrição da tool `topdesk_search` atualizada para refletir busca em Incidents E Changes (GMUDs)
+
+---
+
 ## [0.1.42] - 2026-04-02
 
 ### 🐛 Corrigido

@@ -231,7 +231,83 @@ const auth = {
 - `TOPDESK_PASSWORD` - Password para Basic Auth
 - `TOPDESK_API_TOKEN` - Token para Bearer Auth (alternativa)
 
-## 🛠️ Comandos Úteis
+## � Workflow de Release (OBRIGATÓRIO a cada mudança)
+
+Após **toda** implementação, fix, alteração ou melhoria, execute **obrigatoriamente** os seguintes passos:
+
+### 1. Build
+```bash
+npm run build
+```
+Confirme que TypeScript compila sem erros antes de qualquer commit.
+
+### 2. Git Add & Commit
+```bash
+git add .
+git commit -m "<tipo>: <descrição curta>
+
+- Detalhe 1
+- Detalhe 2
+- Detalhe 3"
+```
+
+**Tipos de commit (Conventional Commits):**
+- `feat`: nova funcionalidade
+- `fix`: correção de bug
+- `docs`: documentação
+- `refactor`: refatoração sem mudança de comportamento
+- `perf`: melhoria de performance
+- `chore`: tarefas de manutenção
+
+### 3. Push
+```bash
+git push
+```
+
+### 4. Tag de Release
+Sempre incrementar o patch version (`v0.X.Y → v0.X.Y+1`):
+```bash
+git tag -a v0.1.XX -m "Release v0.1.XX - <descrição resumida>"
+git push origin v0.1.XX
+```
+
+### 5. Atualizar CHANGELOG.md
+Adicionar entrada antes de `## [Unreleased]` com formato:
+```markdown
+## [0.1.XX] - YYYY-MM-DD
+
+### 🐛 Corrigido
+- Descrição do que foi corrigido
+
+### ✨ Adicionado
+- Nova funcionalidade adicionada
+
+### 📝 Mudado
+- O que mudou no comportamento
+```
+
+### 6. Commit das Release Notes
+```bash
+git add CHANGELOG.md
+git commit -m "docs: update CHANGELOG for v0.1.XX"
+git push
+```
+
+### Exemplo completo de ciclo:
+```bash
+npm run build                                     # 1. Build
+git add .                                         # 2. Stage
+git commit -m "fix: corrigir endpoint de busca"  # 3. Commit
+git push                                          # 4. Push
+git tag -a v0.1.43 -m "Release v0.1.43 - ..."   # 5. Tag
+git push origin v0.1.43                           # 6. Push tag
+# Editar CHANGELOG.md                             # 7. Changelog
+git add CHANGELOG.md && git commit -m "docs: ..." && git push
+```
+
+---
+
+## �🛠️ Comandos Úteis
 
 ```bash
 # Instalar dependências
