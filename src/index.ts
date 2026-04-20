@@ -1281,7 +1281,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       console.error(`[TOPdesk] Search query: "${query}" across incidents and changes`);
 
       // Busca paralela em incidents e changes via FIQL (evita 403 do /search)
-      const fiqlQuery = `briefDescription=lk=${query}`;
+      // Operador correto: == com wildcards * (=lk= não existe no TOPdesk FIQL)
+      const escapedQuery = query.replace(/['"]/g, '');
+      const fiqlQuery = `briefDescription==*${escapedQuery}*`;
 
       const [incidents, changes] = await Promise.allSettled([
         topdeskClient.listIncidents({ query: fiqlQuery, pageSize }),
