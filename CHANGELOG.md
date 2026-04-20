@@ -7,6 +7,19 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.46] - 2026-04-20
+
+### 🐛 Corrigido
+- **CRÍTICO**: Queries com espaços quebravam o parser FIQL (`ParseException: Encountered UNRESERVED_STR`)
+- `topdesk_search` divide multi-palavras e usa OR FIQL (`,`) entre cada termo
+- Filtra palavras curtas (<3 chars) e caracteres especiais do FIQL (`;`, `'`, `"`, etc.)
+
+### 📝 Mudado
+- `"banco de dados"` → `briefDescription==*banco*,briefDescription==*dados*`
+- Adicionado log do FIQL gerado para facilitar debug
+
+---
+
 ## [0.1.45] - 2026-04-20
 
 ### 🐛 Corrigido
