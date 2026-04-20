@@ -7,6 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.45] - 2026-04-20
+
+### 🐛 Corrigido
+- **CRÍTICO**: `changeResults.map is not a function` ao buscar GMUDs no `topdesk_search`
+- API `/operatorChanges` retorna objeto paginado `{results:[]}` em vez de array direto
+- Adicionado `normalizeResult()` para suportar: array direto, `.results[]` e `.dataSet[]`
+
+---
+
 ## [0.1.44] - 2026-04-20
 
 ### 🐛 Corrigido
