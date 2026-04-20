@@ -1290,8 +1290,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         topdeskClient.listChanges({ query: fiqlQuery, page_size: pageSize }),
       ]);
 
-      const incidentResults = incidents.status === 'fulfilled' ? incidents.value : [];
-      const changeResults   = changes.status   === 'fulfilled' ? changes.value   : [];
+      // Normaliza resultado - API pode retornar array direto ou objeto paginado
+      const normalizeResult = (data: any): any[] => {
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.results)) return data.results;
+        if (data && Array.isArray(data.dataSet)) return data.dataSet;
+        return [];
+      };
+
+      const incidentResults = incidents.status === 'fulfilled' ? normalizeResult(incidents.value) : [];
+      const changeResults   = changes.status   === 'fulfilled' ? normalizeResult(changes.value)   : [];
 
       if (incidents.status === 'rejected') {
         console.error(`[TOPdesk] Search incidents failed: ${incidents.reason}`);
