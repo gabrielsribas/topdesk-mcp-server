@@ -7,6 +7,18 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.44] - 2026-04-20
+
+### 🐛 Corrigido
+- **CRÍTICO**: Operador FIQL `=lk=` não existe no TOPdesk → substituído por `==*texto*` (wildcard)
+- `topdesk_search` retornava 400 `Unknown operator: =lk=` para qualquer busca
+- Adicionado escape de aspas no termo de busca para evitar erros de parsing FIQL
+
+### 📝 Mudado
+- Query FIQL de busca: `briefDescription=lk=texto` → `briefDescription==*texto*`
+
+---
+
 ## [0.1.43] - 2026-04-20
 
 ### 🐛 Corrigido
