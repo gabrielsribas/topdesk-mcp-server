@@ -138,14 +138,14 @@ const tools: Tool[] = [
   {
     name: 'topdesk_create_incident',
     description:
-      'Cria um novo incident no TOPdesk. Requer pelo menos briefDescription.',
+      'Cria um novo incident no TOPdesk. OBRIGATÓRIO: caller (solicitante) e briefDescription. Para caller: se tiver UUID de pessoa use o UUID; se não tiver, use o nome completo da pessoa (ex: "João da Silva") e a API registrará como chamador dinâmico.',
     inputSchema: {
       type: 'object',
       properties: {
-        callerLookup: {
+        caller: {
           type: 'string',
           description:
-            'UUID do solicitante (caller) - NÃO use nome ou email! Use topdesk_list_persons ou topdesk_get_person_by_id para obter UUID.',
+            'OBRIGATÓRIO. Solicitante do incident. Aceita UUID (pessoa registrada) ou nome completo (ex: "João da Silva" - registrado como caller dinâmico). Use topdesk_list_persons para obter o UUID de uma pessoa registrada.',
         },
         briefDescription: {
           type: 'string',
@@ -196,7 +196,7 @@ const tools: Tool[] = [
           description: 'UUID do grupo de operadores - NÃO use nome! Use topdesk_list_operator_groups (quando implementado). ATENÇÃO: operatorGroup requer UUID.',
         },
       },
-      required: ['briefDescription'],
+      required: ['caller', 'briefDescription'],
     },
   },
   {
@@ -910,7 +910,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'topdesk_create_incident') {
-      const incident = await topdeskClient.createIncident(args as any);
+      const { caller, callerLookup, ...rest } = args as any;
+
+      // Transforma caller: UUID → {id}, nome → {dynamicName}
+      // A API exige caller obrigatoriamente
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const createData: any = { ...rest };
+
+      if (caller) {
+        createData.caller = uuidRegex.test(caller)
+          ? { id: caller }
+          : { dynamicName: caller };
+      } else if (callerLookup) {
+        // Compatibilidade retroativa com callerLookup
+        createData.caller = uuidRegex.test(callerLookup)
+          ? { id: callerLookup }
+          : { dynamicName: callerLookup };
+      } else {
+        throw new Error('Campo "caller" é obrigatório. Forneça UUID ou nome completo do solicitante.');
+      }
+
+      console.error(`[TOPdesk] Creating incident with caller:`, JSON.stringify(createData.caller));
+
+      const incident = await topdeskClient.createIncident(createData);
       return {
         content: [
           {

@@ -140,7 +140,8 @@ export interface OptionalFields {
 
 export interface IncidentCreateBody {
   callerLookup?: string;
-  caller?: {
+  caller: {
+    id?: string;
     dynamicName?: string;
     branch?: string;
     email?: string;
