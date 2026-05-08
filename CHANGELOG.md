@@ -7,6 +7,17 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.47] - 2026-05-08
+
+### 🐛 Corrigido
+- **CRÍTICO**: `400: Caller id or name must be specified` ao criar incidents
+- Campo `caller` agora é obrigatório no schema do `topdesk_create_incident`
+- Transformação automática: UUID → `{id: uuid}`, nome → `{dynamicName: nome}`
+- Compatibilidade retroativa com campo legado `callerLookup`
+- `IncidentCreateBody` atualizado com `caller.id` no tipo
+
+---
+
 ## [0.1.46] - 2026-04-20
 
 ### 🐛 Corrigido
