@@ -233,36 +233,96 @@ export interface TimeSpent {
 
 // ========== Change Management Types ==========
 
+export interface ChangeRequester {
+  id?: string;
+  name?: string;
+  branch?: IdAndName;
+  location?: IdAndName;
+  department?: IdAndName;
+  budgetHolder?: IdAndName;
+  email?: string;
+  phoneNumber?: string;
+  mobilePhoneNumber?: string;
+}
+
+export interface ChangeAssignee {
+  id?: string;
+  name?: string;
+  groupId?: string;
+  groupName?: string;
+  type?: string;
+}
+
+export interface SimpleChangeData {
+  plannedStartDate?: string;
+  startDate?: string;
+  plannedImplementationDate?: string;
+  implementationDate?: string;
+  closedDate?: string;
+  assignee?: ChangeAssignee;
+}
+
+export interface ChangePhase {
+  plannedEndDate?: string;
+  endDate?: string;
+  rejectedDate?: string;
+  noGoDate?: string;
+  authorizer?: ChangeAssignee;
+}
+
+export interface ChangePhases {
+  prfc?: ChangePhase;
+  rfc?: ChangePhase;
+  progress?: ChangePhase;
+  evaluation?: ChangePhase;
+}
+
 export interface Change {
   id: string;
   number: string;
-  status: string;
-  requester?: Caller;
-  requesterName?: string;
   briefDescription?: string;
+  // Legacy fields (sem fields parameter)
+  status?: string | IdAndName;
+  requester?: Caller | ChangeRequester;
+  requesterName?: string;
   request?: string;
   changeType?: string;
   changeTemplate?: IdAndName;
+  // New API schema fields (com fields parameter)
+  type?: IdAndName;
   category?: IdAndName;
   subcategory?: IdAndName;
   benefit?: IdAndName;
   impact?: IdAndName;
   priority?: IdAndName;
   object?: Object;
-  branch?: Branch;
+  branch?: Branch | IdAndName;
   location?: IdAndName;
   creator?: Operator;
   creationDate?: string;
   modifier?: Operator;
   modificationDate?: string;
+  lastModificationDate?: string;
+  requestDate?: string;
+  submitDate?: string;
   operator?: Operator;
   operatorGroup?: IdAndName;
+  coordinator?: ChangeAssignee | IdAndName;
   supplier?: IdAndName;
-  processingStatus?: IdAndName;
+  processingStatus?: string | IdAndName;
   completed?: boolean;
   closed?: boolean;
+  archived?: boolean;
   closureDate?: string;
   costs?: number;
+  emergencyChange?: boolean;
+  urgent?: boolean;
+  externalNumber?: string;
+  withEvaluation?: boolean;
+  // Simple change data (dates and assignee)
+  simple?: SimpleChangeData;
+  // Phases data (for extensive changes)
+  phases?: ChangePhases;
   optionalFields1?: OptionalFields;
   optionalFields2?: OptionalFields;
 }
@@ -364,15 +424,19 @@ export interface IncidentListParams {
 export interface ChangeListParams {
   archived?: boolean;
   closed?: boolean;
+  open?: boolean;
   start?: number;
   page_size?: number;
   query?: string;
+  sort?: string;
+  fields?: string;
   status?: string;
   operator?: string;
   operatorGroup?: string;
   requester?: string;
   changeType?: string;
   processingStatus?: string;
+  phase?: string;
 }
 
 export interface ServiceListParams {

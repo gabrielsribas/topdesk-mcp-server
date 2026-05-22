@@ -355,7 +355,7 @@ export class TopdeskClient {
   /**
    * Lista changes (como operador)
    */
-  async listChanges(params?: ChangeListParams): Promise<Change[]> {
+  async listChanges(params?: ChangeListParams): Promise<Change[] | { results: Change[]; next?: string }> {
     const cleanParams = params
       ? Object.fromEntries(
           Object.entries(params)
@@ -375,7 +375,7 @@ export class TopdeskClient {
         )
       : undefined;
 
-    const response = await this.client.get<Change[]>('/operatorChanges', {
+    const response = await this.client.get<Change[] | { results: Change[]; next?: string }>('/operatorChanges', {
       params: cleanParams,
     });
     return response.data;

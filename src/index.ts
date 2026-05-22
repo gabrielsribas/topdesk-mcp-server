@@ -390,50 +390,90 @@ const tools: Tool[] = [
   // ===== CHANGES =====
   {
     name: 'topdesk_list_changes',
-    description: 'Lista mudanças (changes) do TOPdesk com filtros opcionais.',
+    description: `Lista mudanças (changes) do TOPdesk com filtros opcionais.
+
+IMPORTANTE: Use o parâmetro \`fields\` para controlar quais campos são retornados.
+Sem \`fields\`, a API retorna apenas campos legados (número, briefDescription, status básico).
+Com \`fields\`, você obtém o schema completo e pode solicitar campos específicos.
+
+CAMPOS DISPONÍVEIS (use separados por vírgula no parâmetro \`fields\`):
+- Básicos: id, number, briefDescription, changeType, archived, creationDate, modificationDate, processingStatus, status, requestDate, submitDate, urgent, externalNumber, withEvaluation
+- Solicitante: requester.id, requester.name, requester.branch.name, requester.location.name, requester.department.name
+- Classificação: category.name, subcategory.name, impact.name, benefit.name, priority.name, type.name
+- Responsável: coordinator.name, coordinator.groupName, supplier.name
+- Localização: branch.name, location.name, object.name, object.type
+- Datas de mudança simples: simple.plannedStartDate, simple.plannedImplementationDate, simple.startDate, simple.implementationDate, simple.closedDate, simple.assignee.name, simple.assignee.groupName
+- Fases (mudança extensa): phases.rfc.plannedEndDate, phases.progress.plannedEndDate, phases.evaluation.plannedEndDate
+- Custos: simpleCosts, currentPlanCosts, estimateCosts
+- Campos opcionais: optionalFields1.text1, optionalFields1.text2, optionalFields1.boolean1, optionalFields1.memo1, optionalFields2.text1, etc.
+
+CAMPOS RECOMENDADOS PARA APRESENTAÇÃO NO CAB:
+\`\`\`
+fields=number,briefDescription,changeType,processingStatus,requester.name,category.name,impact.name,simple.assignee.name,simple.assignee.groupName,simple.plannedStartDate,simple.plannedImplementationDate,optionalFields1.text1,optionalFields1.text2,optionalFields1.text3,optionalFields1.text4,optionalFields1.text5,optionalFields1.boolean1,optionalFields2.text1,optionalFields2.text2,optionalFields2.text3,optionalFields2.text4,optionalFields2.text5,optionalFields2.boolean1
+\`\`\`
+
+FILTROS FIQL (parâmetro \`query\`):
+- Por data de criação: query="creationDate=ge=2026-05-20T00:00:00Z;creationDate=le=2026-05-20T23:59:59Z"
+- Por data início planejada: query="simple.plannedStartDate=ge=2026-05-20T00:00:00Z"
+- Por tipo: query="changeType==simple"
+- Apenas abertas: query="open==true"
+- Por fase: query="phase=in=(rfc,simple,progress)"
+- Por número: query="number==C2603-12345"
+
+ORDENAÇÃO (parâmetro \`sort\`):
+- Por data de criação desc: sort="creationDate:desc"
+- Por data de início planejada: sort="simple.plannedStartDate:asc"`,
     inputSchema: {
       type: 'object',
       properties: {
-        archived: {
-          type: 'boolean',
-          description: 'Incluir changes arquivados',
+        query: {
+          type: 'string',
+          description: 'Filtro FIQL para selecionar changes. Ex: "creationDate=ge=2026-05-20T00:00:00Z" para changes de uma data específica',
         },
-        closed: {
-          type: 'boolean',
-          description: 'Filtrar por changes fechados',
+        fields: {
+          type: 'string',
+          description: 'Campos a retornar separados por vírgula. Use "all" para todos. Sem este parâmetro retorna apenas campos legados (limitados). Para CAB use: number,briefDescription,changeType,processingStatus,requester.name,category.name,impact.name,simple.assignee.name,simple.assignee.groupName,simple.plannedStartDate,simple.plannedImplementationDate,optionalFields1.text1,optionalFields1.text2,optionalFields1.text3,optionalFields1.text4,optionalFields1.text5,optionalFields1.boolean1,optionalFields2.text1,optionalFields2.text2,optionalFields2.text3,optionalFields2.text4,optionalFields2.text5,optionalFields2.boolean1',
         },
-        start: {
-          type: 'number',
-          description: 'Índice inicial para paginação',
+        sort: {
+          type: 'string',
+          description: 'Ordenação dos resultados. Ex: "creationDate:desc" ou "simple.plannedStartDate:asc"',
         },
         page_size: {
           type: 'number',
-          description: 'Quantidade de resultados por página',
+          description: 'Quantidade de resultados por página (padrão: 1000, máximo: 5000)',
         },
-        status: {
-          type: 'string',
-          description: 'Status do change',
+        start: {
+          type: 'number',
+          description: 'Índice inicial para paginação (padrão: 0)',
         },
-        operator: {
-          type: 'string',
-          description: 'ID do operador',
-        },
-        requester: {
-          type: 'string',
-          description: 'ID do solicitante',
+        archived: {
+          type: 'boolean',
+          description: 'Filtrar por changes arquivados',
         },
       },
     },
   },
   {
     name: 'topdesk_get_change_by_id',
-    description: 'Obtém um change específico pelo ID.',
+    description: `Obtém um change específico pelo ID ou número.
+
+Retorna o schema completo do change incluindo:
+- Dados básicos: number, briefDescription, changeType, processingStatus, emergencyChange
+- Solicitante: requester (id, name, branch, location, department, email)
+- Classificação: category, subcategory, impact, benefit, priority, type
+- Coordenação: coordinator, supplier
+- Datas e responsável (mudança simples): simple.plannedStartDate, simple.plannedImplementationDate, simple.startDate, simple.implementationDate, simple.closedDate, simple.assignee
+- Fases (mudança extensa): phases.prfc, phases.rfc, phases.progress, phases.evaluation (cada uma com plannedEndDate, endDate, authorizer)
+- Campos opcionais customizados: optionalFields1, optionalFields2 (text1-5, boolean1-5, memo1-5, date1-5, number1-5)
+- Custos, objeto vinculado, localização, branch
+
+Use este tool para obter detalhes completos de uma mudança específica para apresentação no CAB.`,
     inputSchema: {
       type: 'object',
       properties: {
         id: {
           type: 'string',
-          description: 'ID do change',
+          description: 'ID (UUID) ou número do change (ex: "C2603-12345")',
         },
       },
       required: ['id'],
