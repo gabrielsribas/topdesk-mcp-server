@@ -7,6 +7,24 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.48] - 2026-05-22
+
+### ✨ Adicionado
+- Novos parâmetros no `topdesk_list_changes`: `query` (FIQL), `fields`, `sort` para controle completo da listagem
+- Preset de campos recomendados para apresentação no CAB na descrição do tool
+- Interfaces TypeScript: `ChangeRequester`, `ChangeAssignee`, `SimpleChangeData`, `ChangePhase`, `ChangePhases`
+- Suporte a campos `simple.plannedStartDate`, `simple.plannedImplementationDate`, `simple.assignee` (datas e responsável)
+- Suporte a fases extensas: `phases.rfc`, `phases.progress`, `phases.evaluation` com `plannedEndDate` e `authorizer`
+- Parâmetros `open`, `sort`, `fields`, `phase` no `ChangeListParams`
+
+### 📝 Mudado
+- Interface `Change` expandida com schema completo da API: `type`, `coordinator`, `simple`, `phases`, `emergencyChange`, `urgent`, `externalNumber`, `requestDate`, etc.
+- `listChanges` no cliente agora retorna `Change[] | { results: Change[]; next?: string }` para suportar ambos os formatos de resposta da API (com e sem `fields`)
+- Descrição do `topdesk_get_change_by_id` atualizada com lista completa de campos retornados
+- Descrição do `topdesk_list_changes` reescrita com exemplos FIQL, campos disponíveis e preset CAB
+
+---
+
 ## [0.1.47] - 2026-05-08
 
 ### 🐛 Corrigido
