@@ -371,6 +371,76 @@ export interface ChangeUpdateBody {
   optionalFields2?: Partial<OptionalFields>;
 }
 
+// ========== Change Activity Types ==========
+
+export interface ChangeActivityParent {
+  id: string;
+  number: string;
+}
+
+export interface ActivityAssignee {
+  id?: string;
+  name?: string;
+  groupId?: string;
+  groupName?: string;
+  type?: 'manager' | 'operator';
+}
+
+export interface ChangeActivity {
+  id: string;
+  number: string;
+  briefDescription?: string;
+  change?: ChangeActivityParent;
+  activityType?: 'normal' | 'authorization';
+  assignee?: ActivityAssignee;
+  processingStatus?: 'waiting' | 'ready_to_start' | 'in_progress' | 'finished' | 'skipped' | 'authorized' | 'rejected';
+  status?: IdAndName;
+  plannedStartDate?: string;
+  startDate?: string;
+  plannedFinalDate?: string;
+  finalDate?: string;
+  resolvedDate?: string;
+  archived?: boolean;
+  creationDate?: string;
+  lastModificationDate?: string;
+  template?: IdAndName;
+  archiveReason?: IdAndName;
+  category?: IdAndName;
+  subcategory?: IdAndName;
+  externalNumber?: string;
+  rejectedDate?: string;
+  rejectionReason?: IdAndName;
+  skippedDate?: string;
+  skippedReason?: IdAndName;
+  approvedDate?: string;
+  creator?: IdAndName;
+  modifier?: IdAndName;
+  supplier?: IdAndName;
+  plannedChangePhase?: 'rfc' | 'progress' | 'evaluation';
+  requests?: string;
+  progressTrail?: string;
+  optionalFields1?: OptionalFields;
+  optionalFields2?: OptionalFields;
+  costs?: number;
+  currentPlanCosts?: number;
+  originalPlanCosts?: number;
+  realizedCosts?: number;
+  remainingCosts?: number;
+  timeSpent?: number;
+  currentPlanTimeSpent?: number;
+  originalPlanTimeSpent?: number;
+  remainingTimeSpent?: number;
+}
+
+export interface ChangeActivityListParams {
+  query?: string;
+  fields?: string;
+  sort?: string;
+  page_size?: number;
+  start?: number;
+  archived?: boolean;
+}
+
 // ========== Services Types ==========
 
 export interface Service {

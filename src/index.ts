@@ -606,6 +606,92 @@ Use este tool para obter detalhes completos de uma mudança específica para apr
     },
   },
 
+  // ===== CHANGE ACTIVITIES =====
+  {
+    name: 'topdesk_list_change_activities',
+    description: `Lista atividades (activities) associadas a uma mudança no TOPdesk.
+
+Use este tool para responder perguntas como:
+- "Quais são as atividades da mudança M2605-180?"
+- "Liste as atividades da mudança C 2605 180"
+- "Quais tarefas estão associadas a essa mudança?"
+
+COMO FILTRAR POR MUDANÇA (parâmetro \`query\` com FIQL):
+- Por número da mudança: query="change.number=='M2605-180'"
+- Por ID da mudança:     query="change.id==<uuid>"
+
+CAMPOS DISPONÍVEIS (parâmetro \`fields\`):
+- Básicos: id, number, briefDescription, activityType, processingStatus, plannedChangePhase
+- Responsável: assignee.name, assignee.groupName, assignee.type
+- Datas: plannedStartDate, plannedFinalDate, startDate, finalDate, creationDate
+- Classificação: category.name, subcategory.name, status.name, template.name
+- Mudança pai: change.id, change.number
+- Opcionais: optionalFields1.text1..5, optionalFields1.boolean1..5, optionalFields2.text1..5
+
+CAMPOS RECOMENDADOS:
+\`\`\`
+fields=number,briefDescription,activityType,processingStatus,plannedChangePhase,assignee.name,assignee.groupName,plannedStartDate,plannedFinalDate,startDate,finalDate,category.name,status.name,change.number
+\`\`\`
+
+FILTROS FIQL ÚTEIS:
+- Por status: query="processingStatus==in_progress"
+- Apenas não arquivadas: query="archived==false"
+- Combinado (mudança + não arquivadas): query="change.number=='M2605-180';archived==false"`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Filtro FIQL. Para buscar por mudança use: change.number==\'M2605-180\' ou change.id==<uuid>',
+        },
+        fields: {
+          type: 'string',
+          description: 'Campos a retornar separados por vírgula. Recomendado: number,briefDescription,activityType,processingStatus,plannedChangePhase,assignee.name,assignee.groupName,plannedStartDate,plannedFinalDate,startDate,finalDate,category.name,status.name,change.number',
+        },
+        sort: {
+          type: 'string',
+          description: 'Ordenação. Ex: "plannedStartDate:asc" ou "creationDate:desc"',
+        },
+        page_size: {
+          type: 'number',
+          description: 'Quantidade de resultados por página (padrão: 1000)',
+        },
+        start: {
+          type: 'number',
+          description: 'Índice inicial para paginação (padrão: 0)',
+        },
+        archived: {
+          type: 'boolean',
+          description: 'Incluir atividades arquivadas (padrão: false)',
+        },
+      },
+    },
+  },
+  {
+    name: 'topdesk_get_change_activity_by_id',
+    description: `Obtém os detalhes completos de uma atividade de mudança pelo ID.
+
+Retorna todos os campos da atividade incluindo:
+- Dados básicos: number, briefDescription, activityType, processingStatus, plannedChangePhase
+- Responsável: assignee (id, name, groupId, groupName, type)
+- Datas: plannedStartDate, plannedFinalDate, startDate, finalDate, resolvedDate
+- Classificação: category, subcategory, status, template, supplier
+- Mudança pai: change.id, change.number
+- Motivos: rejectionReason, skippedReason
+- Campos opcionais customizados: optionalFields1, optionalFields2
+- URLs para requests e progressTrail`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+          description: 'ID (UUID) da atividade',
+        },
+      },
+      required: ['id'],
+    },
+  },
+
   // ===== SERVICES =====
   {
     name: 'topdesk_list_services',
@@ -1269,6 +1355,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: 'text',
             text: JSON.stringify(impacts, null, 2),
+          },
+        ],
+      };
+    }
+
+    // ===== CHANGE ACTIVITIES =====
+    if (name === 'topdesk_list_change_activities') {
+      const result = await topdeskClient.listChangeActivities(args as any);
+      // A API retorna { results: [] } quando fields é usado, ou array direto (legacy)
+      const activities = Array.isArray(result) ? result : (result as any).results ?? [];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(activities, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_get_change_activity_by_id') {
+      const { id } = args as { id: string };
+      const activity = await topdeskClient.getChangeActivityById(id);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(activity, null, 2),
           },
         ],
       };

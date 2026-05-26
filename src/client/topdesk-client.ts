@@ -13,6 +13,8 @@ import type {
   ChangeCreateBody,
   ChangeUpdateBody,
   ChangeListParams,
+  ChangeActivity,
+  ChangeActivityListParams,
   Service,
   ServiceCreate,
   ServiceListParams,
@@ -451,6 +453,49 @@ export class TopdeskClient {
 
   async getChangeImpacts(): Promise<IdAndName[]> {
     const response = await this.client.get<IdAndName[]>('/changes/impacts');
+    return response.data;
+  }
+
+  // ========== CHANGE ACTIVITIES ==========
+
+  /**
+   * Lista atividades de changes (operatorChangeActivities)
+   * Filtre por mudança usando query FIQL: change.id==<uuid> ou change.number=='M2605-180'
+   */
+  async listChangeActivities(
+    params?: ChangeActivityListParams
+  ): Promise<ChangeActivity[] | { results: ChangeActivity[]; next?: string }> {
+    const cleanParams = params
+      ? Object.fromEntries(
+          Object.entries(params)
+            .filter(
+              ([_, value]) =>
+                value !== undefined &&
+                value !== null &&
+                (typeof value !== 'string' || value !== '') &&
+                !(typeof value === 'number' && isNaN(value))
+            )
+            .map(([key, value]) => {
+              if (key === 'page_size') return ['pageSize', value];
+              if (key === 'start') return ['pageStart', value];
+              return [key, value];
+            })
+        )
+      : undefined;
+
+    const response = await this.client.get<
+      ChangeActivity[] | { results: ChangeActivity[]; next?: string }
+    >('/operatorChangeActivities', { params: cleanParams });
+    return response.data;
+  }
+
+  /**
+   * Obtém detalhes de uma atividade de change pelo ID
+   */
+  async getChangeActivityById(id: string): Promise<ChangeActivity> {
+    const response = await this.client.get<ChangeActivity>(
+      `/operatorChangeActivities/${id}`
+    );
     return response.data;
   }
 
