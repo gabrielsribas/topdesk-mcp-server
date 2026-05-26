@@ -7,6 +7,18 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.49] - 2026-05-26
+
+### ✨ Adicionado
+- Novo tool `topdesk_list_change_activities`: lista atividades associadas a uma mudança via FIQL (`query=change.number=='M2605-180'`)
+- Novo tool `topdesk_get_change_activity_by_id`: obtém detalhes completos de uma atividade pelo ID
+- Novos tipos TypeScript: `ChangeActivity`, `ChangeActivityParent`, `ActivityAssignee`, `ChangeActivityListParams`
+- Método `listChangeActivities()` no cliente HTTP com suporte a `query`, `fields`, `sort`, `pageSize`
+- Método `getChangeActivityById()` no cliente HTTP
+- Suporte a campos: `assignee`, `processingStatus`, `plannedStartDate`, `plannedFinalDate`, `plannedChangePhase`, `rejectionReason`, `skippedReason`, `optionalFields1/2`
+
+---
+
 ## [0.1.48] - 2026-05-22
 
 ### ✨ Adicionado
