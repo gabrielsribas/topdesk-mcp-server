@@ -7,6 +7,18 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.51] - 2026-06-01
+
+### ✨ Adicionado
+- Novo tool `topdesk_get_cab_summary`: orquestra internamente lista de mudanças + requests de cada uma em paralelo, faz parse do plainText e retorna objeto estruturado com todos os campos CAB prontos
+- Parse automático das seções do template de mudanças: Servidores, Serviços, Motivo, Janela de execução, Indisponibilidade, Risco, Rollback, Informações Adicionais
+- Suporte a filtro por `date` (YYYY-MM-DD) ou `query` FIQL customizado
+
+### 🐛 Corrigido
+- LLM não chamava `topdesk_get_change_requests` automaticamente — problema resolvido movendo toda a orquestração para dentro do servidor MCP via `topdesk_get_cab_summary`
+
+---
+
 ## [0.1.50] - 2026-06-01
 
 ### ✨ Adicionado
