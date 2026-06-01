@@ -483,7 +483,7 @@ async getIncidentProgressTrailById(id: string) { ... }
 1. ✅ Estrutura base do projeto
 2. ✅ Cliente TOPdesk com autenticação
 3. ✅ Tools para Incidents (completo)
-4. ✅ Tools para Changes
+4. ✅ Tools para Changes (completo — incluindo requests body e atividades)
 5. ✅ Tools para Services
 6. ✅ Tools para General APIs
 7. 🔄 Testes automatizados
@@ -509,6 +509,59 @@ Para questões técnicas:
 
 ---
 
-**Última atualização**: 2026-03-27
+## 📋 Mapeamento CAB — Template Banco Semear
+
+O corpo das mudanças do tipo "Mudança de Sistema" (optionalFields1.searchlist2.name == "Mudança de Sistema")
+segue um template estruturado em plainText acessível via `GET /operatorChanges/{id}/requests`.
+
+### Mapeamento campo CAB → fonte na API
+
+| Campo CAB                     | Fonte                                                              |
+|-------------------------------|--------------------------------------------------------------------|
+| Mudança                       | `change.number`                                                    |
+| Resumo da Mudança             | `change.briefDescription`                                          |
+| Solicitante                   | `change.requester.name` + `change.requester.department.name`       |
+| Área Executora                | `change.simple.assignee.groupName`                                 |
+| Serviço(s) afetado            | `requests.plainText` → seção "Serviços envolvidos:"               |
+| Ressalvas                     | `requests.plainText` → seção "Informações Adicionais"             |
+| Servidor utilizado            | `requests.plainText` → seção "Servidores envolvidos:"             |
+| Motivo da mudança             | `requests.plainText` → seção "Justificativa/Objetivo da Mudança:" |
+| Previsto Indisponibilidade?   | `requests.plainText` → seção "Previsto Indisponibilidade durante a janela?" |
+| Data início programada        | `requests.plainText` → "Janela de execução de:" (ou `simple.plannedStartDate`) |
+| Data fim programada           | `requests.plainText` → "Janela de execução até:" (ou `simple.plannedImplementationDate`) |
+
+### Campos opcionais mapeados
+
+| Campo                          | Valor                        |
+|--------------------------------|------------------------------|
+| `optionalFields1.searchlist1`  | Tipo de solicitação (ex: "Solicitação de acesso") |
+| `optionalFields1.searchlist2`  | Categoria da mudança (ex: "Mudança de Sistema", "Gestão de acesso") |
+
+### Workflow recomendado para resumo CAB
+
+```
+1. topdesk_list_changes(query="simple.plannedStartDate=ge=<hoje>T00:00:00Z;simple.plannedStartDate=le=<hoje>T23:59:59Z",
+                         fields="id,number,briefDescription,processingStatus,requester.name,requester.department.name,
+                                  simple.assignee.name,simple.assignee.groupName,simple.plannedStartDate,
+                                  simple.plannedImplementationDate,optionalFields1.searchlist2",
+                         sort="simple.plannedStartDate:asc")
+   → Obtém lista das mudanças do dia
+
+2. Para cada mudança:
+   topdesk_get_change_requests(id=<id>)
+   → Obtém o plainText com todas as seções do template
+
+3. Extrair do plainText:
+   - "Serviços envolvidos:" → Serviço(s) afetado
+   - "Servidores envolvidos:" → Servidor utilizado
+   - "Justificativa/Objetivo da Mudança:" → Motivo
+   - "Previsto Indisponibilidade durante a janela?" → Indisponibilidade
+   - "Janela de execução de/até:" → Datas (se não disponíveis em simple.plannedStartDate)
+   - "Informações Adicionais" → Ressalvas
+```
+
+---
+
+**Última atualização**: 2026-06-01
 **Versão do projeto**: 1.0.0
 **Mantido por**: Equipe de desenvolvimento sênior especializada em MCP Servers

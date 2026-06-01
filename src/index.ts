@@ -405,24 +405,36 @@ CAMPOS DISPONÍVEIS (use separados por vírgula no parâmetro \`fields\`):
 - Datas de mudança simples: simple.plannedStartDate, simple.plannedImplementationDate, simple.startDate, simple.implementationDate, simple.closedDate, simple.assignee.name, simple.assignee.groupName
 - Fases (mudança extensa): phases.rfc.plannedEndDate, phases.progress.plannedEndDate, phases.evaluation.plannedEndDate
 - Custos: simpleCosts, currentPlanCosts, estimateCosts
-- Campos opcionais: optionalFields1.text1, optionalFields1.text2, optionalFields1.boolean1, optionalFields1.memo1, optionalFields2.text1, etc.
+- Campos opcionais: optionalFields1.searchlist1, optionalFields1.searchlist2, optionalFields2.searchlist1, optionalFields2.searchlist2
 
-CAMPOS RECOMENDADOS PARA APRESENTAÇÃO NO CAB:
+CAMPOS RECOMENDADOS PARA LISTAGEM CAB:
 \`\`\`
-fields=number,briefDescription,changeType,processingStatus,requester.name,category.name,impact.name,simple.assignee.name,simple.assignee.groupName,simple.plannedStartDate,simple.plannedImplementationDate,optionalFields1.text1,optionalFields1.text2,optionalFields1.text3,optionalFields1.text4,optionalFields1.text5,optionalFields1.boolean1,optionalFields2.text1,optionalFields2.text2,optionalFields2.text3,optionalFields2.text4,optionalFields2.text5,optionalFields2.boolean1
+fields=id,number,briefDescription,changeType,processingStatus,requester.name,requester.department.name,category.name,subcategory.name,impact.name,simple.assignee.name,simple.assignee.groupName,simple.plannedStartDate,simple.plannedImplementationDate,optionalFields1.searchlist1,optionalFields1.searchlist2
 \`\`\`
+
+ATENÇÃO: Para o resumo completo do CAB (com Serviços afetados, Servidores, Motivo, Janela, Indisponibilidade, Ressalvas),
+você DEVE chamar \`topdesk_get_change_requests\` para cada mudança, pois essas informações estão no corpo (plainText)
+do template estruturado da mudança. Use o mapeamento abaixo:
+- Serviço(s) afetado     → plainText seção "Serviços envolvidos:"
+- Servidor utilizado     → plainText seção "Servidores envolvidos:"
+- Motivo da mudança      → plainText seção "Justificativa/Objetivo da Mudança:"
+- Previsto Indisponib.?  → plainText seção "Previsto Indisponibilidade durante a janela?"
+- Data início programada → plainText seção "Janela de execução de:" (ou simple.plannedStartDate)
+- Data fim programada    → plainText seção "Janela de execução até:" (ou simple.plannedImplementationDate)
+- Ressalvas              → plainText seção "Informações Adicionais"
+- Área Executora         → simple.assignee.groupName
 
 FILTROS FIQL (parâmetro \`query\`):
+- Mudanças do CAB hoje (por data planejada de início): query="simple.plannedStartDate=ge=2026-05-20T00:00:00Z;simple.plannedStartDate=le=2026-05-20T23:59:59Z"
 - Por data de criação: query="creationDate=ge=2026-05-20T00:00:00Z;creationDate=le=2026-05-20T23:59:59Z"
-- Por data início planejada: query="simple.plannedStartDate=ge=2026-05-20T00:00:00Z"
-- Por tipo: query="changeType==simple"
 - Apenas abertas: query="open==true"
-- Por fase: query="phase=in=(rfc,simple,progress)"
-- Por número: query="number==C2603-12345"
+- Por fase RFC (aguardando aprovação): query="processingStatus==rfc"
+- Por tipo sistema (Mudança de Sistema): query="optionalFields1.searchlist2.name=='Mudança de Sistema'"
+- Por número: query="number=='M2501-173'"
 
 ORDENAÇÃO (parâmetro \`sort\`):
-- Por data de criação desc: sort="creationDate:desc"
-- Por data de início planejada: sort="simple.plannedStartDate:asc"`,
+- Por data de início planejada: sort="simple.plannedStartDate:asc"
+- Por data de criação desc: sort="creationDate:desc"`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -574,6 +586,57 @@ Use este tool para obter detalhes completos de uma mudança específica para apr
         id: {
           type: 'string',
           description: 'ID do change',
+        },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'topdesk_get_change_requests',
+    description: `Obtém o corpo completo (descrição/requests) de uma mudança pelo ID ou número.
+
+Retorna o conteúdo detalhado da mudança em plainText com o template estruturado usado pelo Banco Semear.
+Use este tool SEMPRE que precisar extrair informações detalhadas para apresentação no CAB.
+
+O plainText contém seções estruturadas como:
+- "Motivo de abertura" → Motivo da mudança
+- "Justificativa/Objetivo da Mudança" → Resumo detalhado / motivo
+- "Servidores envolvidos:" → Servidor utilizado
+- "Serviços envolvidos:" → Serviço(s) afetado
+- "Janela de execução de:" → Data início programada
+- "Janela de execução até:" → Data fim programada
+- "Previsto Indisponibilidade durante a janela?" → Previsto Indisponibilidade?
+- "Informações Adicionais" → Ressalvas
+- "Rollback (passo a passo)" → Plano de rollback
+- "Risco" → Nível de risco
+- "Roteiro de Execução" → Passos de execução
+
+MAPEAMENTO COMPLETO PARA O TEMPLATE CAB:
+
+| Campo CAB                  | Fonte na API                                              |
+|----------------------------|-----------------------------------------------------------|
+| Mudança                    | change.number                                             |
+| Resumo da Mudança          | change.briefDescription                                   |
+| Solicitante                | change.requester.name + requester.department.name         |
+| Área Executora             | change.simple.assignee.groupName                          |
+| Serviço(s) afetado         | requests.plainText → seção "Serviços envolvidos:"         |
+| Ressalvas                  | requests.plainText → seção "Informações Adicionais"       |
+| Servidor utilizado         | requests.plainText → seção "Servidores envolvidos:"       |
+| Motivo da mudança          | requests.plainText → seção "Justificativa/Objetivo"       |
+| Previsto Indisponibilidade?| requests.plainText → seção "Previsto Indisponibilidade"   |
+| Data início programada     | requests.plainText → "Janela de execução de:" (ou simple.plannedStartDate) |
+| Data fim programada        | requests.plainText → "Janela de execução até:" (ou simple.plannedImplementationDate) |
+
+WORKFLOW RECOMENDADO para resumo CAB completo de uma mudança:
+1. topdesk_get_change_by_id(id) → dados estruturados (requester, assignee, category, etc.)
+2. topdesk_get_change_requests(id) → corpo plainText com seções de janela, servidores, serviços, etc.
+3. Combinar os dois e apresentar no formato CAB`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+          description: 'ID (UUID) ou número da mudança (ex: "M2501-173")',
         },
       },
       required: ['id'],
@@ -1318,6 +1381,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: 'text',
             text: 'Change archived successfully',
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_get_change_requests') {
+      const { id } = args as { id: string };
+      const result = await topdeskClient.getChangeRequests(id);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };

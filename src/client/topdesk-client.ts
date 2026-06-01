@@ -15,6 +15,8 @@ import type {
   ChangeListParams,
   ChangeActivity,
   ChangeActivityListParams,
+  RequestEntry,
+  RequestEntryList,
   Service,
   ServiceCreate,
   ServiceListParams,
@@ -433,6 +435,20 @@ export class TopdeskClient {
   async getChangeProgressTrailById(id: string): Promise<ProgressTrail[]> {
     const response = await this.client.get<ProgressTrail[]>(
       `/operatorChanges/${id}/progresstrail`
+    );
+    return response.data;
+  }
+
+  /**
+   * Obtém o corpo (requests/descrição) de uma mudança.
+   * O plainText contém o template estruturado com seções como:
+   * "Servidores envolvidos:", "Serviços envolvidos:", "Justificativa/Objetivo da Mudança:",
+   * "Previsto Indisponibilidade:", "Janela de execução de:", "Rollback:", etc.
+   * Use o plainText para extrair as informações para apresentação no CAB.
+   */
+  async getChangeRequests(id: string): Promise<RequestEntryList> {
+    const response = await this.client.get<RequestEntryList>(
+      `/operatorChanges/${id}/requests`
     );
     return response.data;
   }

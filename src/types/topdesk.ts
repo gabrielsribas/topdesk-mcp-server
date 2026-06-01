@@ -371,6 +371,23 @@ export interface ChangeUpdateBody {
   optionalFields2?: Partial<OptionalFields>;
 }
 
+// ========== Change Request (body/description) Types ==========
+
+export interface RequestEntry {
+  id: string;
+  memoText?: string;   // Texto completo com formatação HTML
+  plainText?: string;  // Texto sem HTML (usar este para parsing do CAB)
+  entryDate?: string;
+  creationDate?: string;
+  operator?: IdAndName;
+  person?: IdAndName;
+  flag?: number;
+}
+
+export interface RequestEntryList {
+  results: RequestEntry[];
+}
+
 // ========== Change Activity Types ==========
 
 export interface ChangeActivityParent {
