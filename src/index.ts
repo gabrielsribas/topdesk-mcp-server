@@ -642,6 +642,58 @@ WORKFLOW RECOMENDADO para resumo CAB completo de uma mudança:
       required: ['id'],
     },
   },
+  {
+    name: 'topdesk_get_cab_summary',
+    description: `Retorna o resumo completo de mudanças para apresentação no CAB (Change Advisory Board).
+
+Este tool orquestra internamente:
+1. Busca as mudanças pelo filtro informado (data, número, etc.)
+2. Busca o corpo (requests) de cada mudança em paralelo
+3. Faz o parse do plainText extraindo cada seção do template
+4. Retorna um objeto estruturado com TODOS os campos do CAB prontos
+
+USE ESTE TOOL sempre que o usuário pedir:
+- "mudanças programadas para o CAB hoje/amanhã/data X"
+- "resumo do CAB"
+- "me fala as mudanças do dia para o CAB"
+- "detalhes da mudança M2501-173 para o CAB"
+
+CAMPOS RETORNADOS para cada mudança:
+- numero: number
+- resumo: briefDescription
+- solicitante: requester.name (departamento)
+- areaExecutora: simple.assignee.groupName
+- servicosAfetados: extraído do plainText → "Serviços envolvidos:"
+- servidores: extraído do plainText → "Servidores envolvidos:"
+- motivo: extraído do plainText → "Justificativa/Objetivo da Mudança:"
+- previstosIndisponibilidade: extraído do plainText → "Previsto Indisponibilidade durante a janela?"
+- dataInicio: extraído do plainText → "Janela de execução de:" (fallback: simple.plannedStartDate)
+- dataFim: extraído do plainText → "Janela de execução até:" (fallback: simple.plannedImplementationDate)
+- ressalvas: extraído do plainText → "Informações Adicionais"
+- risco: extraído do plainText → "Risco"
+- rollback: extraído do plainText → "Rollback (passo a passo)"
+- categoria: category.name / subcategory.name
+- impacto: impact.name
+- tipoMudanca: changeType
+- status: processingStatus`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        date: {
+          type: 'string',
+          description: 'Data no formato YYYY-MM-DD (ex: "2026-05-20"). Filtra por simple.plannedStartDate. Se omitido, usa a data de hoje.',
+        },
+        query: {
+          type: 'string',
+          description: 'Filtro FIQL adicional ou substituto. Ex: "number==\'M2501-173\'" para uma mudança específica. Se informado, ignora o parâmetro date.',
+        },
+        page_size: {
+          type: 'number',
+          description: 'Máximo de mudanças a retornar (padrão: 50)',
+        },
+      },
+    },
+  },
 
   // ===== CHANGE METADATA =====
   {
@@ -1394,6 +1446,131 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: 'text',
             text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'topdesk_get_cab_summary') {
+      const { date, query: userQuery, page_size } = args as {
+        date?: string;
+        query?: string;
+        page_size?: number;
+      };
+
+      // Monta o filtro FIQL
+      let fiql: string;
+      if (userQuery) {
+        fiql = userQuery;
+      } else {
+        const targetDate = date || new Date().toISOString().split('T')[0];
+        fiql = `simple.plannedStartDate=ge=${targetDate}T00:00:00Z;simple.plannedStartDate=le=${targetDate}T23:59:59Z`;
+      }
+
+      const CAB_FIELDS = [
+        'id', 'number', 'briefDescription', 'changeType', 'processingStatus',
+        'requester.name', 'requester.department.name',
+        'category.name', 'subcategory.name', 'impact.name',
+        'simple.assignee.name', 'simple.assignee.groupName',
+        'simple.plannedStartDate', 'simple.plannedImplementationDate',
+        'optionalFields1.searchlist2',
+      ].join(',');
+
+      // 1. Buscar lista de mudanças
+      const listResult = await topdeskClient.listChanges({
+        query: fiql,
+        fields: CAB_FIELDS,
+        sort: 'simple.plannedStartDate:asc',
+        page_size: page_size ?? 50,
+      });
+      const changes = Array.isArray(listResult)
+        ? listResult
+        : (listResult as any).results ?? [];
+
+      if (changes.length === 0) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ total: 0, mudancas: [] }, null, 2) }],
+        };
+      }
+
+      // Helper: extrai o valor de uma seção do plainText
+      // Suporta variações de capitalização e espaços
+      const extractSection = (text: string, ...labels: string[]): string => {
+        for (const label of labels) {
+          // Regex: da label até a próxima linha em branco ou próxima seção (linha que termina com ":")
+          const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const rx = new RegExp(
+            `${escaped}[\\s\\S]*?\\n-?\\s*([^\\n]+(?:\\n(?!\\s*\\n|[^\\n]+:)[^\\n]+)*)`,
+            'i'
+          );
+          const m = text.match(rx);
+          if (m) {
+            const val = m[1].trim().replace(/^-\s*/, '');
+            if (val && val !== '-' && val !== '') return val;
+          }
+        }
+        return '—';
+      };
+
+      // 2. Buscar requests de todas as mudanças em paralelo
+      const requestsResults = await Promise.allSettled(
+        changes.map((c: any) => topdeskClient.getChangeRequests(c.id))
+      );
+
+      // 3. Montar resumo CAB para cada mudança
+      const mudancas = changes.map((c: any, idx: number) => {
+        const reqResult = requestsResults[idx];
+        const plainText: string =
+          reqResult.status === 'fulfilled'
+            ? (reqResult.value?.results?.[0]?.plainText ?? '')
+            : '';
+
+        const dataInicioParsed = extractSection(plainText, 'Janela de execução de:', 'Janela de execucao de:');
+        const dataFimParsed = extractSection(plainText, 'Janela de execução até:', 'Janela de execucao ate:', 'Janela de execução ate:');
+
+        return {
+          mudanca: c.number,
+          resumo: c.briefDescription ?? '—',
+          tipoMudanca: c.changeType ?? '—',
+          status: c.processingStatus ?? '—',
+          solicitante: [
+            c.requester?.name,
+            c.requester?.department?.name,
+          ].filter(Boolean).join(' — ') || '—',
+          areaExecutora: c.simple?.assignee?.groupName || c.simple?.assignee?.name || '—',
+          categoria: [c.category?.name, c.subcategory?.name].filter(Boolean).join(' / ') || '—',
+          impacto: c.impact?.name ?? '—',
+          dataInicioProgramada: dataInicioParsed !== '—'
+            ? dataInicioParsed
+            : c.simple?.plannedStartDate ?? '—',
+          dataFimProgramada: dataFimParsed !== '—'
+            ? dataFimParsed
+            : c.simple?.plannedImplementationDate ?? '—',
+          servicosAfetados: extractSection(plainText, 'Serviços envolvidos:', 'Servicos envolvidos:'),
+          servidores: extractSection(plainText, 'Servidores envolvidos:'),
+          motivo: extractSection(
+            plainText,
+            'Justificativa/Objetivo da Mudança (detalhe a alteração no processo de negócio):',
+            'Justificativa/Objetivo da Mudança:',
+            'Justificativa/Objetivo:',
+            'Justificativa:'
+          ),
+          previstosIndisponibilidade: extractSection(
+            plainText,
+            'Previsto Indisponibilidade durante a janela?',
+            'Previsto Indisponibilidade?'
+          ),
+          risco: extractSection(plainText, 'Risco'),
+          ressalvas: extractSection(plainText, 'Informações Adicionais', 'Informacoes Adicionais'),
+          rollback: extractSection(plainText, 'Rollback (passo a passo)', 'Rollback:'),
+        };
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ total: mudancas.length, mudancas }, null, 2),
           },
         ],
       };
