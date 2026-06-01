@@ -7,6 +7,31 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.50] - 2026-06-01
+
+### ✨ Adicionado
+- Novo tool `topdesk_get_change_requests`: obtém o corpo completo (plainText/HTML) de uma mudança via `GET /operatorChanges/{id}/requests`
+- Novos tipos TypeScript: `RequestEntry`, `RequestEntryList`
+- Método `getChangeRequests()` no cliente HTTP
+- Mapeamento CAB completo documentado no `copilot-instructions.md` e na descrição do tool
+
+### 📝 Mudado
+- Descrição do `topdesk_list_changes` atualizada com:
+  - Mapeamento explícito de cada campo CAB para sua fonte na API
+  - Filtro FIQL para mudanças do CAB por data de início planejada
+  - Instrução para chamar `topdesk_get_change_requests` para obter detalhes do corpo
+  - `optionalFields1.searchlist2` como campo de classificação do tipo de mudança
+- `copilot-instructions.md` atualizado com tabela de mapeamento CAB → API e workflow recomendado
+
+### 🔍 Descobertas documentadas (via inspeção real da API)
+- Template de mudanças do tipo "Mudança de Sistema" contém seções estruturadas no `plainText`:
+  `Servidores envolvidos`, `Serviços envolvidos`, `Justificativa/Objetivo`, `Previsto Indisponibilidade`,
+  `Janela de execução de/até`, `Rollback`, `Roteiro de Execução`, `Informações Adicionais`
+- `optionalFields1.searchlist2.name` = "Mudança de Sistema" identifica mudanças técnicas para o CAB
+- `optionalFields1.searchlist1.name` = "Solicitação de acesso" identifica mudanças de acesso (não vão para CAB)
+
+---
+
 ## [0.1.49] - 2026-05-26
 
 ### ✨ Adicionado
