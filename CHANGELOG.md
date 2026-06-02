@@ -7,6 +7,22 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.52] - 2026-06-01
+
+### 🐛 Corrigido
+- Parser do `topdesk_get_cab_summary` não reconhecia variações de template, deixando campos vazios
+- Adicionados aliases para todos os templates encontrados em produção:
+  - **Servidores**: `Servidores de aplicação envolvidos:`, `Nome(s) do(s) Servidor(es) - Homologação`
+  - **Serviços**: `Serviços Impactados`
+  - **Motivo**: `Motivo da Mudança:`, `Justificativa da necessidade`
+  - **Data início**: `Data/Hora (início)`
+  - **Data fim**: `Data/Hora (fim)`
+  - **Rollback**: `Rollback` (sem sufixo `(passo a passo)`)
+- Templates de "Gestão de acesso" / "Aprovação de Terceiros" agora detectados como `templateTipo: acesso/aprovação` e retornam `—` nos campos técnicos (correto, pois não possuem essas seções)
+- Regex do parser reescrita para capturar corretamente blocos multilinha após cada label
+
+---
+
 ## [0.1.51] - 2026-06-01
 
 ### ✨ Adicionado
