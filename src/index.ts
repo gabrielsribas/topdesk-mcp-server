@@ -1493,20 +1493,43 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      // Helper: extrai o valor de uma seção do plainText
-      // Suporta variações de capitalização e espaços
+      // Templates sem campos técnicos de CAB (apenas gestão de acesso/aprovações)
+      // Para esses, não vale tentar extrair servidores/motivo/etc.
+      const NON_TECHNICAL_PREFIXES = [
+        'Solicitação de acesso',
+        'Aprovação de Terceiros',
+        'Acesso ao',
+        'Acesso WILLIANS',
+        'Criação / Bloqueio',
+        'Usuário - Deslig',
+        'Solicitação de Automatização',
+      ];
+      const isNonTechnical = (text: string): boolean =>
+        NON_TECHNICAL_PREFIXES.some(p =>
+          text.trimStart().toLowerCase().startsWith(p.toLowerCase())
+        );
+
+      // Helper: extrai o valor de uma seção do plainText.
+      // Suporta múltiplas variações do nome da seção.
+      // Para cada label, procura: <label>\n- <valor> ou <label>\n<valor>
       const extractSection = (text: string, ...labels: string[]): string => {
         for (const label of labels) {
-          // Regex: da label até a próxima linha em branco ou próxima seção (linha que termina com ":")
           const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // Captura tudo depois da label até a próxima linha vazia ou próxima seção
           const rx = new RegExp(
-            `${escaped}[\\s\\S]*?\\n-?\\s*([^\\n]+(?:\\n(?!\\s*\\n|[^\\n]+:)[^\\n]+)*)`,
-            'i'
+            `${escaped}[^\\n]*\\n([\\s\\S]*?)(?=\\n\\s*\\n|\\n[^\\n-][^\\n]*[:\\?]\\s*$|$)`,
+            'im'
           );
           const m = text.match(rx);
           if (m) {
-            const val = m[1].trim().replace(/^-\s*/, '');
-            if (val && val !== '-' && val !== '') return val;
+            // Junta linhas, remove prefixos "- " e filtra vazias
+            const val = m[1]
+              .split('\n')
+              .map((l: string) => l.trim().replace(/^-\s*/, ''))
+              .filter((l: string) => l.length > 0)
+              .join(' ')
+              .trim();
+            if (val && val !== '-') return val;
           }
         }
         return '—';
@@ -1525,8 +1548,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ? (reqResult.value?.results?.[0]?.plainText ?? '')
             : '';
 
-        const dataInicioParsed = extractSection(plainText, 'Janela de execução de:', 'Janela de execucao de:');
-        const dataFimParsed = extractSection(plainText, 'Janela de execução até:', 'Janela de execucao ate:', 'Janela de execução ate:');
+        const nonTech = isNonTechnical(plainText);
+
+        const dataInicioParsed = nonTech ? '—' : extractSection(
+          plainText,
+          'Janela de execução de:',
+          'Janela de execucao de:',
+          'Data/Hora (início)',
+          'Data/Hora (inicio)',
+        );
+        const dataFimParsed = nonTech ? '—' : extractSection(
+          plainText,
+          'Janela de execução até:',
+          'Janela de execucao ate:',
+          'Janela de execução ate:',
+          'Data/Hora (fim)',
+        );
 
         return {
           mudanca: c.number,
@@ -1546,23 +1583,48 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           dataFimProgramada: dataFimParsed !== '—'
             ? dataFimParsed
             : c.simple?.plannedImplementationDate ?? '—',
-          servicosAfetados: extractSection(plainText, 'Serviços envolvidos:', 'Servicos envolvidos:'),
-          servidores: extractSection(plainText, 'Servidores envolvidos:'),
-          motivo: extractSection(
+          servicosAfetados: nonTech ? '—' : extractSection(
+            plainText,
+            'Serviços envolvidos:',
+            'Servicos envolvidos:',
+            'Serviços Impactados',
+            'Servicos Impactados',
+          ),
+          servidores: nonTech ? '—' : extractSection(
+            plainText,
+            'Servidores envolvidos:',
+            'Servidores de aplicação envolvidos:',
+            'Servidores de aplicacao envolvidos:',
+            'Nome(s) do(s) Servidor(es) - Homologação',
+            'Nome(s) do(s) Servidor(es):',
+          ),
+          motivo: nonTech ? '—' : extractSection(
             plainText,
             'Justificativa/Objetivo da Mudança (detalhe a alteração no processo de negócio):',
+            'Justificativa/Objetivo da Mudança (detalhe a alteracao no processo de negocio):',
             'Justificativa/Objetivo da Mudança:',
-            'Justificativa/Objetivo:',
-            'Justificativa:'
+            'Motivo da Mudança:',
+            'Motivo da Mudanca:',
+            'Justificativa da necessidade',
+            'Justificativa:',
           ),
-          previstosIndisponibilidade: extractSection(
+          previstosIndisponibilidade: nonTech ? '—' : extractSection(
             plainText,
             'Previsto Indisponibilidade durante a janela?',
-            'Previsto Indisponibilidade?'
+            'Previsto Indisponibilidade?',
           ),
-          risco: extractSection(plainText, 'Risco'),
-          ressalvas: extractSection(plainText, 'Informações Adicionais', 'Informacoes Adicionais'),
-          rollback: extractSection(plainText, 'Rollback (passo a passo)', 'Rollback:'),
+          risco: nonTech ? '—' : extractSection(plainText, 'Risco'),
+          ressalvas: nonTech ? '—' : extractSection(
+            plainText,
+            'Informações Adicionais',
+            'Informacoes Adicionais',
+          ),
+          rollback: nonTech ? '—' : extractSection(
+            plainText,
+            'Rollback (passo a passo)',
+            'Rollback',
+          ),
+          templateTipo: nonTech ? 'acesso/aprovação' : 'técnica',
         };
       });
 
