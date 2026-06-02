@@ -650,46 +650,62 @@ Este tool orquestra internamente:
 1. Busca as mudanças pelo filtro informado (data, número, etc.)
 2. Busca o corpo (requests) de cada mudança em paralelo
 3. Faz o parse do plainText extraindo cada seção do template
-4. Retorna um objeto estruturado com TODOS os campos do CAB prontos
+4. Aplica filtros pós-parse (ex: apenas com indisponibilidade)
+5. Retorna objeto estruturado com TODOS os campos do CAB prontos
 
 USE ESTE TOOL sempre que o usuário pedir:
 - "mudanças programadas para o CAB hoje/amanhã/data X"
+- "mudanças aprovadas no dia X"
+- "mudanças com indisponibilidade no dia X"
 - "resumo do CAB"
-- "me fala as mudanças do dia para o CAB"
 - "detalhes da mudança M2501-173 para o CAB"
 
+IMPORTANTE — CAMPO "PREVISTO INDISPONIBILIDADE":
+Este campo NÃO existe como campo indexado na API. Ele está no corpo (plainText) da mudança.
+Por isso, NÃO tente filtrar por indisponibilidade via FIQL. Use o parâmetro \`comIndisponibilidade: true\`
+que este tool aplica o filtro APÓS o parse do plainText.
+
+IMPORTANTE — "MUDANÇAS APROVADAS":
+No TOPdesk não existe status "aprovada". Use o parâmetro \`statusFilter\` com os valores corretos:
+- Executadas/Fechadas: "extensive_closed,simple_closed,extensive_done,simple_done"
+- Em progresso: "extensive_inProgress,simple_inProgress"
+- Aguardando aprovação (RFC): "rfc,prfc"
+- Qualquer abertas: não usar statusFilter (retorna todas)
+
+MAPEAMENTO DE INTENÇÕES DO USUÁRIO → PARÂMETROS:
+- "aprovadas ontem" → date="YYYY-MM-DD", statusFilter="extensive_closed,simple_closed,extensive_done,simple_done,rfc"
+- "com indisponibilidade" → comIndisponibilidade=true
+- "aprovadas com indisponibilidade" → statusFilter="extensive_closed,...", comIndisponibilidade=true
+- "programadas para hoje" → date="hoje"
+- "mudança específica" → query="number=='M2501-173'"
+
 CAMPOS RETORNADOS para cada mudança:
-- numero: number
-- resumo: briefDescription
-- solicitante: requester.name (departamento)
-- areaExecutora: simple.assignee.groupName
-- servicosAfetados: extraído do plainText → "Serviços envolvidos:"
-- servidores: extraído do plainText → "Servidores envolvidos:"
-- motivo: extraído do plainText → "Justificativa/Objetivo da Mudança:"
-- previstosIndisponibilidade: extraído do plainText → "Previsto Indisponibilidade durante a janela?"
-- dataInicio: extraído do plainText → "Janela de execução de:" (fallback: simple.plannedStartDate)
-- dataFim: extraído do plainText → "Janela de execução até:" (fallback: simple.plannedImplementationDate)
-- ressalvas: extraído do plainText → "Informações Adicionais"
-- risco: extraído do plainText → "Risco"
-- rollback: extraído do plainText → "Rollback (passo a passo)"
-- categoria: category.name / subcategory.name
-- impacto: impact.name
-- tipoMudanca: changeType
-- status: processingStatus`,
+- mudanca, resumo, tipoMudanca, status, solicitante, areaExecutora, categoria, impacto
+- dataInicioProgramada, dataFimProgramada
+- servicosAfetados, servidores, motivo, previstosIndisponibilidade, risco, ressalvas, rollback
+- templateTipo: "técnica" ou "acesso/aprovação"`,
     inputSchema: {
       type: 'object',
       properties: {
         date: {
           type: 'string',
-          description: 'Data no formato YYYY-MM-DD (ex: "2026-05-20"). Filtra por simple.plannedStartDate. Se omitido, usa a data de hoje.',
+          description: 'Data no formato YYYY-MM-DD (ex: "2026-05-27"). Filtra por simple.plannedStartDate. Se omitido, usa a data de hoje.',
         },
         query: {
           type: 'string',
-          description: 'Filtro FIQL adicional ou substituto. Ex: "number==\'M2501-173\'" para uma mudança específica. Se informado, ignora o parâmetro date.',
+          description: 'Filtro FIQL substituto. Ex: "number==\'M2501-173\'". Se informado, ignora o parâmetro date.',
+        },
+        statusFilter: {
+          type: 'string',
+          description: 'Filtra por processingStatus. Lista separada por vírgula. Ex: "extensive_closed,simple_closed,extensive_done,simple_done" para mudanças executadas/fechadas. Valores possíveis: prfc, rfc, extensive_notStarted, extensive_inProgress, extensive_done, extensive_closed, extensive_evaluating, extensive_evaluated, extensive_nogo, extensive_cancelled, simple_notStarted, simple_inProgress, simple_done, simple_closed, rejected',
+        },
+        comIndisponibilidade: {
+          type: 'boolean',
+          description: 'Se true, retorna apenas mudanças cujo campo "Previsto Indisponibilidade durante a janela?" seja "Sim". O filtro é aplicado após o parse do plainText (não via FIQL).',
         },
         page_size: {
           type: 'number',
-          description: 'Máximo de mudanças a retornar (padrão: 50)',
+          description: 'Máximo de mudanças a buscar antes dos filtros pós-parse (padrão: 100)',
         },
       },
     },
@@ -1452,19 +1468,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'topdesk_get_cab_summary') {
-      const { date, query: userQuery, page_size } = args as {
+      const { date, query: userQuery, page_size, statusFilter, comIndisponibilidade } = args as {
         date?: string;
         query?: string;
         page_size?: number;
+        statusFilter?: string;
+        comIndisponibilidade?: boolean;
       };
 
-      // Monta o filtro FIQL
+      // Monta o filtro FIQL base (por data ou query explícita)
       let fiql: string;
       if (userQuery) {
         fiql = userQuery;
       } else {
         const targetDate = date || new Date().toISOString().split('T')[0];
         fiql = `simple.plannedStartDate=ge=${targetDate}T00:00:00Z;simple.plannedStartDate=le=${targetDate}T23:59:59Z`;
+      }
+
+      // Adiciona filtro de status via FIQL se informado
+      // Ex: statusFilter="extensive_closed,simple_closed" → FIQL: processingStatus=in=(extensive_closed,simple_closed)
+      if (statusFilter && statusFilter.trim()) {
+        const statuses = statusFilter.split(',').map((s: string) => s.trim()).filter(Boolean);
+        if (statuses.length === 1) {
+          fiql += `;processingStatus==${statuses[0]}`;
+        } else {
+          fiql += `;processingStatus=in=(${statuses.join(',')})`;
+        }
       }
 
       const CAB_FIELDS = [
@@ -1481,7 +1510,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         query: fiql,
         fields: CAB_FIELDS,
         sort: 'simple.plannedStartDate:asc',
-        page_size: page_size ?? 50,
+        page_size: page_size ?? 100,
       });
       const changes = Array.isArray(listResult)
         ? listResult
@@ -1628,11 +1657,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       });
 
+      // 4. Filtro pós-parse: apenas mudanças com indisponibilidade prevista
+      const resultado = comIndisponibilidade
+        ? mudancas.filter((m: any) =>
+            typeof m.previstosIndisponibilidade === 'string' &&
+            m.previstosIndisponibilidade.toLowerCase().startsWith('sim')
+          )
+        : mudancas;
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({ total: mudancas.length, mudancas }, null, 2),
+            text: JSON.stringify({ total: resultado.length, mudancas: resultado }, null, 2),
           },
         ],
       };
