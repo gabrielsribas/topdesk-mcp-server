@@ -7,6 +7,20 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.53] - 2026-06-02
+
+### ✨ Adicionado
+- Parâmetro `comIndisponibilidade` no `topdesk_get_cab_summary`: filtra pós-parse apenas mudanças com `Previsto Indisponibilidade = Sim`
+- Parâmetro `statusFilter` no `topdesk_get_cab_summary`: filtra por `processingStatus` via FIQL. Ex: `"extensive_closed,simple_closed"` para mudanças executadas
+- `page_size` padrão aumentado de 50 para 100
+
+### 🐛 Corrigido
+- "Mudanças aprovadas com indisponibilidade" retornava apenas emergenciais: campo `Previsto Indisponibilidade` não existe como campo indexado na API — agora o filtro é aplicado **após** o parse do `plainText`
+- LLM tentava filtrar por indisponibilidade via FIQL (impossível): descrição do tool reescrita com instruções explícitas sobre quando usar `comIndisponibilidade` vs FIQL
+- Mapeamento de "aprovadas" → `processingStatus` documentado na descrição do tool
+
+---
+
 ## [0.1.52] - 2026-06-01
 
 ### 🐛 Corrigido
